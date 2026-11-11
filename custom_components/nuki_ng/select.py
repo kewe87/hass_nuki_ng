@@ -1,11 +1,8 @@
-from email.policy import default
 from homeassistant.components.select import SelectEntity
-from homeassistant.helpers.entity import EntityCategory
 
 import logging
 
-from . import NukiEntity, NukiOpenerRingSuppressionEntity
-from .constants import DOMAIN
+from . import NukiOpenerRingSuppressionEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -60,7 +57,7 @@ class NukiOpenerRingSuppressionSelect(NukiOpenerRingSuppressionEntity, SelectEnt
 
     @property
     def current_option(self) -> str | None:
-        return self.VALUES_TO_NAMES[self.doorbellSuppression]
+        return self.VALUES_TO_NAMES.get(self.doorbellSuppression)
 
     @property
     def options(self) -> list[str]:

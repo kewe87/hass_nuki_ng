@@ -8,6 +8,14 @@ class BaseStates(Enum):
     def __str__(self):
         return self.name.lower().replace("_", " ").replace("and", "&").title()
 
+    @classmethod
+    def parse(cls, value):
+        """Member for value, None for unknown values (e.g. opener 253)."""
+        try:
+            return cls(value)
+        except (ValueError, TypeError):
+            return None
+
 
 class LockStates(BaseStates):
     UNCALIBRATED = 0

@@ -4,7 +4,6 @@ from homeassistant.helpers.entity import EntityCategory
 import logging
 
 from . import NukiEntity, NukiBridge
-from .constants import DOMAIN
 from .states import DoorSensorStates, LockStates, LockModes
 
 _LOGGER = logging.getLogger(__name__)
@@ -41,7 +40,7 @@ class BatteryLow(NukiEntity, BinarySensorEntity):
 
     @property
     def is_on(self) -> bool:
-        return self.last_state.get("batteryCritical", False)
+        return self.last_state.get("batteryCritical") is True
 
     @property
     def device_class(self) -> str:
@@ -61,7 +60,7 @@ class BatteryCharging(NukiEntity, BinarySensorEntity):
 
     @property
     def is_on(self) -> bool:
-        return self.last_state.get("batteryCharging", False)
+        return self.last_state.get("batteryCharging") is True
 
     @property
     def entity_category(self):
@@ -76,7 +75,7 @@ class KeypadBatteryLow(NukiEntity, BinarySensorEntity):
 
     @property
     def is_on(self) -> bool:
-        return self.last_state.get("keypadBatteryCritical", False)
+        return self.last_state.get("keypadBatteryCritical") is True
 
     @property
     def device_class(self) -> str:
@@ -95,7 +94,7 @@ class RingAction(NukiEntity, BinarySensorEntity):
 
     @property
     def is_on(self) -> bool:
-        return self.last_state.get("ringactionState", False)
+        return self.last_state.get("ringactionState") is True
 
     @property
     def extra_state_attributes(self):
@@ -116,10 +115,12 @@ class LockState(NukiEntity, BinarySensorEntity):
         self._attr_device_class = "lock"
 
     @property
-    def is_on(self) -> bool:
-        currentMode = LockModes(self.last_state.get("mode", LockModes.DOOR_MODE.value))
-        currentState = LockStates(self.last_state.get("state", LockStates.UNDEFINED.value))
-        return currentState != LockStates.LOCKED or currentMode != LockModes.DOOR_MODE
+    def is_on(self) -> bool | None:
+        current_state = LockStates.parse(self.last_state.get("state"))
+        if current_state is None or current_state == LockStates.UNDEFINED:
+            return None
+        current_mode = LockModes.parse(self.last_state.get("mode", LockModes.DOOR_MODE.value))
+        return current_state != LockStates.LOCKED or current_mode == LockModes.CONTINUOUS_MODE
 
     @property
     def extra_state_attributes(self):
@@ -136,10 +137,13 @@ class DoorState(NukiEntity, BinarySensorEntity):
         self._attr_device_class = "door"
 
     @property
-    def is_on(self) -> bool:
-        current = DoorSensorStates(self.last_state.get(
-            "doorsensorState", DoorSensorStates.UNKNOWN.value))
-        return current != DoorSensorStates.DOOR_CLOSED
+    def is_on(self) -> bool | None:
+        current = DoorSensorStates.parse(self.last_state.get("doorsensorState"))
+        if current == DoorSensorStates.DOOR_CLOSED:
+            return False
+        if current == DoorSensorStates.DOOR_OPENED:
+            return True
+        return None
 
 
 class BridgeServerConnection(NukiBridge, BinarySensorEntity):
@@ -182,12 +186,14 @@ class BridgeCallbackSet(NukiBridge, BinarySensorEntity):
 
     @property
     def extra_state_attributes(self):
-        result = {}
-        callbacks = self.data.get("callbacks_list")
-        if callbacks:
-            for item in callbacks:
-                result["callback#%s" % (item["id"])] = item["url"]
-        return result
+        # The URLs contain the secret webhook id and are not exposed.
+        callbacks = self.data.get("callbacks_list") or []
+        return {
+            "callbacks_registered": len(callbacks),
+            "foreign_callbacks": sum(
+                1 for item in callbacks if not self.coordinator._is_own_callback(item.get("url", ""))
+            ),
+        }
 
     @property
     def entity_category(self):
@@ -209,7 +215,12 @@ class BridgeCallbackReachable(NukiBridge, BinarySensorEntity):
 
     @property
     def extra_state_attributes(self):
-        return {"url": self.data.get("callback_url")}
+        last_push = self.coordinator.last_push
+        return {
+            "last_push": last_push.isoformat() if last_push else None,
+            "rejected_pushes": self.coordinator.rejected_pushes,
+            "auth_mode": self.data.get("auth_mode"),
+        }
 
     @property
     def entity_category(self):

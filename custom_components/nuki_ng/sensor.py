@@ -5,7 +5,6 @@ import logging
 from datetime import datetime
 
 from . import NukiEntity, NukiBridge
-from .constants import DOMAIN
 from .states import DoorSensorStates, LockStates, DoorSecurityStates
 
 _LOGGER = logging.getLogger(__name__)
@@ -53,11 +52,8 @@ class Battery(NukiEntity, SensorEntity):
 
     @property
     def native_value(self):
-        return self.last_state.get("batteryChargeState", 0)
-
-    @property
-    def state(self):
-        return self.native_value
+        value = self.last_state.get("batteryChargeState")
+        return value if isinstance(value, int) and not isinstance(value, bool) else None
 
     @property
     def entity_category(self):
@@ -72,7 +68,7 @@ class LockState(NukiEntity, SensorEntity):
         self._attr_icon = "mdi:door"
 
     @property
-    def state(self):
+    def native_value(self):
         return self.last_state.get("stateName")
 
     @property
@@ -94,11 +90,7 @@ class RSSI(NukiEntity, SensorEntity):
 
     @property
     def native_value(self):
-        return self.data.get("bridge_info", {}).get("rssi")
-
-    @property
-    def state(self):
-        return self.native_value
+        return (self.data.get("bridge_info") or {}).get("rssi")
 
     @property
     def entity_category(self):
@@ -113,7 +105,7 @@ class DoorSensorState(NukiEntity, SensorEntity):
         self._attr_icon = "mdi:door"
 
     @property
-    def state(self):
+    def native_value(self):
         return self.last_state.get("doorsensorStateName")
 
     @property
@@ -137,16 +129,23 @@ class DoorSecurityState(NukiEntity, SensorEntity):
             return "mdi:door-closed-lock"
         elif state == DoorSecurityStates.CLOSED_AND_UNLOCKED:
             return "mdi:door-closed"
+        elif state is None:
+            return "mdi:door"
         return "mdi:door-open"
 
     @property
-    def state(self):
-        return str(self.get_state())
+    def native_value(self):
+        state = self.get_state()
+        return str(state) if state is not None else None
 
-    def get_state(self) -> DoorSecurityStates:
-        lock_state = LockStates(self.last_state.get("state", LockStates.UNDEFINED.value))
-        door_sensor_state = DoorSensorStates(
-            self.last_state.get("doorsensorState", DoorSensorStates.UNKNOWN.value))
+    def get_state(self) -> DoorSecurityStates | None:
+        lock_state = LockStates.parse(self.last_state.get("state"))
+        door_sensor_state = DoorSensorStates.parse(self.last_state.get("doorsensorState"))
+        if door_sensor_state in (None, DoorSensorStates.DOOR_UNKNOWN, DoorSensorStates.UNKNOWN,
+                                 DoorSensorStates.UNAVAILABLE, DoorSensorStates.DEACTIVATED,
+                                 DoorSensorStates.CALIBRATING, DoorSensorStates.UNCALIBRATED,
+                                 DoorSensorStates.REMOVED):
+            return None
 
         if lock_state == LockStates.LOCKED and door_sensor_state == DoorSensorStates.DOOR_CLOSED:
             return DoorSecurityStates.CLOSED_AND_LOCKED
@@ -162,7 +161,7 @@ class BridgeWifiVersion(NukiBridge, SensorEntity):
         self.set_name("WiFi Firmware Version")
 
     @property
-    def state(self):
+    def native_value(self):
         versions = self.data.get("versions", {})
         return versions.get("wifiFirmwareVersion")
 
@@ -178,7 +177,7 @@ class BridgeVersion(NukiBridge, SensorEntity):
         self.set_name("Firmware Version")
 
     @property
-    def state(self):
+    def native_value(self):
         versions = self.data.get("versions", {})
         return versions.get("firmwareVersion")
 
@@ -195,7 +194,7 @@ class LockVersion(NukiEntity, SensorEntity):
         self.set_name("Firmware Version")
 
     @property
-    def state(self):
+    def native_value(self):
         return self.data.get("firmwareVersion")
 
     @property
@@ -211,7 +210,7 @@ class LastLog(NukiEntity, SensorEntity):
         self._attr_icon = "mdi:history"
 
     @property
-    def state(self):
+    def native_value(self):
         return self.coordinator.info_field(self.device_id, "Unknown", "last_log", "name")
 
     @property
@@ -236,7 +235,7 @@ class LastUnlockUser(NukiEntity, SensorEntity):
         self._attr_icon = "mdi:account-lock-open"
 
     @property
-    def state(self):
+    def native_value(self):
         return self.coordinator.info_field(self.device_id, "Unknown", "last_unlock_log", "name")
 
     @property

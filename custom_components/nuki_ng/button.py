@@ -4,7 +4,6 @@ from homeassistant.helpers.entity import EntityCategory
 import logging
 
 from . import NukiBridge
-from .constants import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 

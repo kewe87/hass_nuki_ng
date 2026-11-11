@@ -1,11 +1,9 @@
-from email.policy import default
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.helpers.entity import EntityCategory
 
 import logging
 
 from . import NukiEntity, NukiOpenerRingSuppressionEntity
-from .constants import DOMAIN
 from .states import LockModes
 
 _LOGGER = logging.getLogger(__name__)
@@ -88,13 +86,9 @@ class AuthEntry(NukiEntity, SwitchEntity):
         }
 
     @property
-    def device_info(self):
-        return {
-            "identifiers": {("web_id", self.device_id)},
-            "name": "Nuki Web API",
-            "manufacturer": "Nuki",
-            "via_device": ("id", self.device_id)
-        }
+    def entity_registry_enabled_default(self):
+        # Re-enabling a revoked keypad code or fob is security relevant.
+        return False
 
     @property
     def entity_category(self):
@@ -127,7 +121,7 @@ class LockButtonEnabled(NukiEntity, SwitchEntity):
         super().__init__(coordinator, device_id)
         self.set_id("switch", "button_enabled")
         self.set_name("Button Enabled")
-        self._attr_icon = "mdi:lock-clock"
+        self._attr_icon = "mdi:gesture-tap-button"
 
     @property
     def is_on(self):
@@ -205,12 +199,19 @@ class OpenerContinuousMode(NukiEntity, SwitchEntity):
         self.set_name("Continuous Mode")
 
     @property
+    def entity_registry_enabled_default(self):
+        # Continuous mode opens the door for everybody who rings. As a switch
+        # it could be turned on by scenes, groups or voice assistants without
+        # the PIN protection of the lock entity, so it is opt-in.
+        return False
+
+    @property
     def icon(self) -> str | None:
         return "mdi:lock-open-check" if self.is_on else "mdi:lock-check"
 
     @property
     def is_on(self):
-        return LockModes(self.last_state.get("mode", LockModes.DOOR_MODE.value)) == LockModes.CONTINUOUS_MODE
+        return LockModes.parse(self.last_state.get("mode")) == LockModes.CONTINUOUS_MODE
 
     @property
     def entity_category(self):
