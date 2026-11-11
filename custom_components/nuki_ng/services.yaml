@@ -26,8 +26,14 @@ bridge_delete_callback:
         text: {}
 execute_action:
   name: Execute arbitrary lock action via the Bridge or Web API
+  description: >-
+    Runs the action only on the targeted lock/opener (targeting the bridge
+    selects all of its devices). The bridge result is verified and failed
+    attempts are retried. Returns per device whether the action succeeded.
   target:
     device:
+      integration: nuki_ng
+    entity:
       integration: nuki_ng
   fields:
     action:
