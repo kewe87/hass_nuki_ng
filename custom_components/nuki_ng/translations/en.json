@@ -92,6 +92,10 @@
       "name": "Delete bridge callback",
       "description": "Removes a callback URL from the bridge (admin only).",
       "fields": {
+        "device_id": {
+          "name": "Bridge",
+          "description": "Nuki bridge (or a device connected to it)"
+        },
         "command": {
           "name": "Callback URL",
           "description": "URL to delete"

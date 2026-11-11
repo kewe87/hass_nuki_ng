@@ -9,10 +9,12 @@ bridge_fwupdate:
       integration: nuki_ng
 
 bridge_delete_callback:
-  target:
-    device:
-      integration: nuki_ng
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: nuki_ng
     command:
       required: true
       example: "http://192.168.0.0/callback"

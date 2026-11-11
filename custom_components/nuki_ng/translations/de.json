@@ -92,6 +92,10 @@
       "name": "Bridge-Callback löschen",
       "description": "Entfernt eine Callback-URL von der Bridge (nur Admins).",
       "fields": {
+        "device_id": {
+          "name": "Bridge",
+          "description": "Nuki Bridge (oder ein daran angebundenes Gerät)"
+        },
         "command": {
           "name": "Callback-URL",
           "description": "Zu löschende URL"
