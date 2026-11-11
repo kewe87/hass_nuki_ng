@@ -2,6 +2,23 @@
 
 ## Better support for Nuki devices in Home Assistant
 
+> **Maintained fork** of [kvj/hass_nuki_ng](https://github.com/kvj/hass_nuki_ng) with reliability fixes.
+> Drop-in replacement: same domain (`nuki_ng`), same entities, existing setups keep working.
+> Fixes are offered upstream as pull requests; if they are merged there, use the original again.
+
+### Changes in this fork (0.6.0)
+* **Verified lock actions:** the bridge result (`{"success": true}`) is checked. Failed actions raise an error instead of being reported as done, and are retried (default 3 retries, waits for the bridge to come back after a self-reboot).
+* **Serialized bridge requests:** the bridge is single threaded; requests are queued with a short gap instead of colliding.
+* **Tolerates short outages:** a bridge reboot no longer turns all entities unavailable; the last state is kept for up to 3 failed polls (with faster polling meanwhile).
+* **Reliable push updates:** the callback URL is checked for reachability. If the configured URL doesn't work (e.g. after a port change), the internal URL is detected automatically, stale callbacks of the integration are removed, and a repair issue is raised if no URL works.
+* **`execute_action` acts only on the targeted device** (previously all devices of the bridge, so opening the Opener also unlatched the lock). It verifies the result and can return a response (`success`, `attempts`, `error` per device).
+* **Doorbell event** (`event` entity) for the Opener and full callback payload merging (the *Ring Action* sensor works with push updates).
+* **Hashed token** authentication is actually used when the bridge supports it (the option was ignored).
+* **Bridge health:** *Last Restart*, *Failed Actions* and *Callback Reachable* entities, diagnostics download.
+* **Options flow:** change the callback URL (empty = automatic), polling interval and number of retries without re-adding the integration.
+* Async HTTP (aiohttp) instead of blocking requests; tokens are redacted in error messages and logs.
+
+
 ### Features:
 * Supported modes:
   * Nuki Bridge-only, with automatic webhook registration
@@ -21,11 +38,11 @@
 
 ### Installation:
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=kvj&repository=hass_nuki_ng&category=integration)
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=kewe87&repository=hass_nuki_ng&category=integration)
 
 * Go to HACS -> Integrations
 * Click the three dots on the top right and select `Custom Repositories`
-* Enter `https://github.com/kvj/hass_nuki_ng` as repository, select the category `Integration` and click Add
+* Enter `https://github.com/kewe87/hass_nuki_ng` as repository, select the category `Integration` and click Add
 * A new custom integration shows up for installation (Nuki Lock) - install it
 * Restart Home Assistant
 
