@@ -28,6 +28,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     if coordinator.api.can_bridge():
         entities.append(BridgeServerConnection(coordinator))
         entities.append(BridgeCallbackSet(coordinator))
+        entities.append(BridgeCallbackReachable(coordinator))
     async_add_entities(entities)
     return True
 
@@ -173,7 +174,11 @@ class BridgeCallbackSet(NukiBridge, BinarySensorEntity):
 
     @property
     def is_on(self) -> bool:
-        return self.data.get("callbacks_list") != None
+        callbacks = self.data.get("callbacks_list")
+        if callbacks is None:
+            return False
+        url = self.data.get("callback_url")
+        return any(item.get("url") == url for item in callbacks)
 
     @property
     def extra_state_attributes(self):
@@ -183,6 +188,28 @@ class BridgeCallbackSet(NukiBridge, BinarySensorEntity):
             for item in callbacks:
                 result["callback#%s" % (item["id"])] = item["url"]
         return result
+
+    @property
+    def entity_category(self):
+        return EntityCategory.DIAGNOSTIC
+
+
+class BridgeCallbackReachable(NukiBridge, BinarySensorEntity):
+    """Whether the callback URL given to the bridge is reachable."""
+
+    def __init__(self, coordinator):
+        super().__init__(coordinator)
+        self.set_id("callback_reachable")
+        self.set_name("Callback Reachable")
+        self._attr_device_class = "connectivity"
+
+    @property
+    def is_on(self) -> bool:
+        return self.data.get("callback_reachable") is True
+
+    @property
+    def extra_state_attributes(self):
+        return {"url": self.data.get("callback_url")}
 
     @property
     def entity_category(self):

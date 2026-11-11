@@ -1,4 +1,4 @@
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 from homeassistant.helpers.entity import EntityCategory
 
 import logging
@@ -18,6 +18,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
     if coordinator.api.can_bridge():
         entities.append(BridgeWifiVersion(coordinator))
         entities.append(BridgeVersion(coordinator))
+        entities.append(BridgeLastRestart(coordinator))
+        entities.append(BridgeFailedActions(coordinator))
     for dev_id in coordinator.data.get("devices", {}):
         entities.append(LockState(coordinator, dev_id))
         if coordinator.api.can_bridge():
@@ -249,3 +251,37 @@ class LastUnlockUser(NukiEntity, SensorEntity):
     @property
     def entity_category(self):
         return EntityCategory.DIAGNOSTIC
+
+class BridgeLastRestart(NukiBridge, SensorEntity):
+    """Time of the last bridge (re)start, derived from its uptime."""
+
+    def __init__(self, coordinator):
+        super().__init__(coordinator)
+        self.set_id("last_restart")
+        self.set_name("Last Restart")
+        self._attr_device_class = SensorDeviceClass.TIMESTAMP
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @property
+    def native_value(self):
+        return self.coordinator.bridge_last_restart
+
+
+class BridgeFailedActions(NukiBridge, SensorEntity):
+    """Failed action attempts since Home Assistant start (incl. retried ones)."""
+
+    def __init__(self, coordinator):
+        super().__init__(coordinator)
+        self.set_id("failed_actions")
+        self.set_name("Failed Actions")
+        self._attr_state_class = SensorStateClass.TOTAL_INCREASING
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        self._attr_icon = "mdi:alert-circle-outline"
+
+    @property
+    def native_value(self):
+        return self.coordinator.failed_actions
+
+    @property
+    def extra_state_attributes(self):
+        return {"last_error": self.coordinator.last_action_error}
