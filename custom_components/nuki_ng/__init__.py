@@ -1,26 +1,27 @@
 from __future__ import annotations
 
 import logging
-from homeassistant.components import webhook
+import secrets
+
+import voluptuous as vol
+
 from homeassistant.components.diagnostics import async_redact_data
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity import EntityCategory
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.helpers.service import async_register_admin_service
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .nuki import NukiCoordinator
-from .constants import DOMAIN, PLATFORMS
+from .constants import CONF_WEBHOOK_ID, DOMAIN, OPEN_ACTIONS, PLATFORMS
+from .nuki import ALL_ACTIONS, NukiActionFailed, NukiCoordinator, redact
 
-TO_REDACT = {"token", "web_token"}
+TO_REDACT = {"token", "web_token", CONF_WEBHOOK_ID}
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
-
-OPENER_TYPE = 1
-LOCK_TYPE = 0
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -30,20 +31,36 @@ _LOGGER = logging.getLogger(__name__)
 # ------------------------------------------------------
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
+    if not entry.data.get(CONF_WEBHOOK_ID):
+        # Secret, random webhook id (older versions derived it from the
+        # entry id). The old callback is removed from the bridge on refresh.
+        hass.config_entries.async_update_entry(
+            entry, data={**entry.data, CONF_WEBHOOK_ID: secrets.token_hex(32)}
+        )
     data = {**entry.data, **entry.options}
-    _LOGGER.debug(f"async_setup_entry: {async_redact_data(data, TO_REDACT)}")
+    _LOGGER.debug("async_setup_entry: %s", async_redact_data(data, TO_REDACT))
 
     coordinator = NukiCoordinator(hass, entry, data)
     entry.runtime_data = coordinator
+    await coordinator.async_start()
 
     try:
         await coordinator.async_config_entry_first_refresh()
     except Exception:
-        webhook.async_unregister(hass, coordinator.hook_id)
+        await coordinator.unload()
         raise
+
+    hardware_id = coordinator.info_data().get("ids", {}).get("hardwareId")
+    if entry.unique_id is None and hardware_id is not None:
+        others = [
+            other for other in hass.config_entries.async_entries(DOMAIN)
+            if other.unique_id == str(hardware_id)
+        ]
+        if not others:
+            hass.config_entries.async_update_entry(entry, unique_id=str(hardware_id))
+
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
-
     return True
 
 
@@ -69,7 +86,7 @@ def _coordinators(hass: HomeAssistant):
 
 
 def _resolve_targets(hass: HomeAssistant, call: ServiceCall):
-    """Map the service target to (coordinator, nuki device id) pairs.
+    """Map the service target to (coordinator, nuki device id, via_bridge).
 
     Only the targeted devices are used. Targeting the bridge device (or an
     entity of it) selects all devices connected to that bridge.
@@ -81,36 +98,56 @@ def _resolve_targets(hass: HomeAssistant, call: ServiceCall):
             device_ids.add(entry.device_id)
     dev_reg = dr.async_get(hass)
     result = []
+    seen = set()
     for device_id in device_ids:
         device = dev_reg.async_get(device_id)
         if not device:
             continue
         idents = [str(ident[1]) for ident in device.identifiers if ident[0] == DOMAIN]
-        # HA >= 2026.x: a device belongs to a single config entry.
         entry_id = getattr(device, "config_entry_id", None)
-        entry_ids = {entry_id} if entry_id else set(device.config_entries)
+        entry_ids = {entry_id} if entry_id else set(getattr(device, "config_entries", ()))
         for coordinator in _coordinators(hass):
             if coordinator.entry.entry_id not in entry_ids:
                 continue
             devices = coordinator.data.get("devices", {}) if coordinator.data else {}
             matched = [dev_id for dev_id in devices if str(dev_id) in idents]
+            via_bridge = False
             bridge_id = coordinator.info_data().get("ids", {}).get("hardwareId")
             if not matched and bridge_id is not None and str(bridge_id) in idents:
                 matched = list(devices)
+                via_bridge = True
             for dev_id in matched:
-                if (coordinator, dev_id) not in result:
-                    result.append((coordinator, dev_id))
+                key = (coordinator.entry.entry_id, dev_id)
+                if key not in seen:
+                    seen.add(key)
+                    result.append((coordinator, dev_id, via_bridge))
     return result
 
 
 def _bridge_coordinators(hass: HomeAssistant, call: ServiceCall):
     result = []
-    for coordinator, _ in _resolve_targets(hass, call):
+    for coordinator, _, _ in _resolve_targets(hass, call):
         if coordinator not in result:
             result.append(coordinator)
     if not result:
         raise ServiceValidationError("No Nuki bridge found for the selected target")
     return result
+
+
+EXECUTE_ACTION_SCHEMA = vol.Schema(
+    {
+        vol.Required("action"): vol.In(ALL_ACTIONS),
+        **cv.TARGET_SERVICE_FIELDS,
+    }
+)
+DELETE_CALLBACK_SCHEMA = vol.Schema(
+    {
+        vol.Exclusive("command", "url"): cv.string,
+        vol.Exclusive("callback", "url"): cv.string,
+        **cv.TARGET_SERVICE_FIELDS,
+    }
+)
+BRIDGE_SCHEMA = vol.Schema(cv.TARGET_SERVICE_FIELDS)
 
 
 async def async_setup(hass: HomeAssistant, config) -> bool:
@@ -123,33 +160,56 @@ async def async_setup(hass: HomeAssistant, config) -> bool:
             await coordinator.do_fwupdate()
 
     async def _bridge_delete_callback(call: ServiceCall):
+        url = call.data.get("command") or call.data.get("callback")
+        if not url:
+            raise ServiceValidationError("Callback URL is required")
         for coordinator in _bridge_coordinators(hass, call):
-            await coordinator.do_delete_callback(call.data.get("command") or call.data.get("callback"))
+            await coordinator.do_delete_callback(url)
 
     async def _execute_action(call: ServiceCall) -> ServiceResponse:
         targets = _resolve_targets(hass, call)
         if not targets:
             raise ServiceValidationError("No Nuki device found for the selected target")
-        action = call.data.get("action")
+        action = call.data["action"]
+        if action in OPEN_ACTIONS and (len(targets) > 1 or any(t[2] for t in targets)):
+            raise ServiceValidationError(
+                f"'{action}' opens a door and is only allowed for a single lock or "
+                "opener, not for several devices or the whole bridge"
+            )
         results = []
-        for coordinator, dev_id in targets:
+        for coordinator, dev_id, _ in targets:
             name = coordinator.device_data(dev_id).get("name", dev_id)
             try:
-                outcome = await coordinator.action(dev_id, action)
-                results.append(dict(device=name, nuki_id=dev_id, success=True, attempts=outcome.get("attempts", 1), error=None))
+                res = await coordinator.action(dev_id, action)
+                results.append(dict(
+                    device=name, nuki_id=dev_id, success=True, attempts=res.attempts,
+                    outcome=res.outcome, verified=res.verified, error=None,
+                ))
             except HomeAssistantError as err:
                 if not call.return_response:
                     raise
-                results.append(dict(device=name, nuki_id=dev_id, success=False, attempts=coordinator.action_retries + 1, error=str(err)))
+                results.append(dict(
+                    device=name, nuki_id=dev_id, success=False,
+                    attempts=getattr(err, "attempts", 1),
+                    outcome=getattr(err, "outcome", "unknown") if isinstance(err, NukiActionFailed) else "unknown",
+                    verified=False, error=redact(err),
+                ))
         if call.return_response:
             return dict(success=all(item["success"] for item in results), results=results)
         return None
 
-    hass.services.async_register(DOMAIN, "bridge_reboot", _bridge_reboot)
-    hass.services.async_register(DOMAIN, "bridge_fwupdate", _bridge_fwupdate)
-    hass.services.async_register(DOMAIN, "bridge_delete_callback", _bridge_delete_callback)
+    # Bridge maintenance is restricted to administrators.
+    async_register_admin_service(hass, DOMAIN, "bridge_reboot", _bridge_reboot, BRIDGE_SCHEMA)
+    async_register_admin_service(hass, DOMAIN, "bridge_fwupdate", _bridge_fwupdate, BRIDGE_SCHEMA)
+    async_register_admin_service(
+        hass, DOMAIN, "bridge_delete_callback", _bridge_delete_callback, DELETE_CALLBACK_SCHEMA
+    )
     hass.services.async_register(
-        DOMAIN, "execute_action", _execute_action, supports_response=SupportsResponse.OPTIONAL
+        DOMAIN,
+        "execute_action",
+        _execute_action,
+        schema=EXECUTE_ACTION_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
     )
 
     return True
@@ -209,11 +269,7 @@ class NukiEntity(CoordinatorEntity):
 
     @property
     def model(self) -> str:
-        if self.coordinator.is_lock(self.device_id):
-            return "Nuki Smart Lock"
-        if self.coordinator.is_opener(self.device_id):
-            return "Nuki Opener"
-        return "Nuki Device"
+        return self.coordinator.device_model(self.device_id)
 
     # ---- FIXED device_info --------------------------------------
 
@@ -253,7 +309,7 @@ class NukiBridge(CoordinatorEntity):
 
     @property
     def data(self) -> dict:
-        return self.coordinator.data.get("bridge_info", {})
+        return (self.coordinator.data or {}).get("bridge_info") or {}
 
     @property
     def get_id(self):
