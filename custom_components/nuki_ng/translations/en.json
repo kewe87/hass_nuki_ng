@@ -24,12 +24,24 @@
   },
   "options": {
     "step": {
-      "options": {
+      "init": {
         "title": "Configure Nuki device",
+        "description": "Home Assistant URL used by the bridge for push updates (HTTP only). Leave empty to detect it automatically.",
         "data": {
-          "update_seconds": "State polling interval (seconds)"
+          "hass_url": "Home Assistant URL for bridge callbacks (empty = automatic)",
+          "update_seconds": "State polling interval (seconds)",
+          "action_retries": "Retries for failed lock actions"
         }
       }
+    },
+    "error": {
+      "https_not_supported": "Bridge doesn't support HTTPS callbacks. Please make your Home Assistant accessible via HTTP"
+    }
+  },
+  "issues": {
+    "callback_unreachable": {
+      "title": "Nuki bridge can't send push updates",
+      "description": "The callback URL {url} is not reachable, so lock and opener states only update by polling. Set a reachable HTTP URL of Home Assistant in the Nuki Lock integration options (or leave it empty for automatic detection)."
     }
   }
 }

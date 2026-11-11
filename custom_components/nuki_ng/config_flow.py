@@ -1,7 +1,8 @@
 from homeassistant import config_entries
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.network import get_url
-from .constants import DOMAIN
+from homeassistant.core import callback
+from .constants import CONF_ACTION_RETRIES, DEFAULT_ACTION_RETRIES, DOMAIN
 from .nuki import NukiInterface
 
 import logging
@@ -104,23 +105,45 @@ class NukiNGConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user", data_schema=schema, errors=errors
         )
 
-    # def async_get_options_flow(config_entry):
-    #     return OptionsFlowHandler(config_entry)
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry):
+        return OptionsFlowHandler()
 
 
 class OptionsFlowHandler(config_entries.OptionsFlow):
 
-    def __init__(self, config_entry):
-        self.config_entry = config_entry
-
     async def async_step_init(self, user_input=None):
-        data = self.config_entry.as_dict()["data"]
-        _LOGGER.debug(f"OptionsFlowHandler: {data} {self.config_entry}")
+        current = {**self.config_entry.data, **self.config_entry.options}
+        errors = None
+        if user_input is not None:
+            # An emptied optional field is not submitted at all: treat it as
+            # "detect automatically" instead of keeping the old value.
+            hass_url = (user_input.get("hass_url") or "").strip().rstrip("/")
+            if hass_url.lower().startswith("https://"):
+                errors = dict(base="https_not_supported")
+            else:
+                return self.async_create_entry(
+                    data={
+                        "hass_url": hass_url,
+                        "update_seconds": user_input["update_seconds"],
+                        CONF_ACTION_RETRIES: user_input[CONF_ACTION_RETRIES],
+                    }
+                )
         schema = vol.Schema({
-            vol.Required("hass_url", default=data.get("hass_url")): cv.string,
-            vol.Required("token", default=data.get("token")): cv.string,
-            vol.Optional("web_token", default=data.get("web_token")): cv.string,
+            vol.Optional(
+                "hass_url",
+                description={"suggested_value": current.get("hass_url", "")},
+            ): cv.string,
+            vol.Required("update_seconds", default=current.get("update_seconds", 30)): vol.All(
+                vol.Coerce(int),
+                vol.Range(min=10, max=600)
+            ),
+            vol.Required(
+                CONF_ACTION_RETRIES,
+                default=current.get(CONF_ACTION_RETRIES, DEFAULT_ACTION_RETRIES),
+            ): vol.All(vol.Coerce(int), vol.Range(min=0, max=5)),
         })
         return self.async_show_form(
-            step_id="options", data_schema=schema
+            step_id="init", data_schema=schema, errors=errors
         )
