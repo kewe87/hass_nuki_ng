@@ -82,11 +82,23 @@
   "services": {
     "bridge_reboot": {
       "name": "Bridge neu starten",
-      "description": "Startet die Nuki Bridge neu (nur Admins)."
+      "description": "Startet die Nuki Bridge neu (nur Admins).",
+      "fields": {
+        "device_id": {
+          "name": "Bridge",
+          "description": "Nuki Bridge (oder ein daran angebundenes Gerät)"
+        }
+      }
     },
     "bridge_fwupdate": {
       "name": "Bridge-Firmware aktualisieren",
-      "description": "Sucht und installiert Firmware-Updates der Bridge und ihrer Geräte (nur Admins)."
+      "description": "Sucht und installiert Firmware-Updates der Bridge und ihrer Geräte (nur Admins).",
+      "fields": {
+        "device_id": {
+          "name": "Bridge",
+          "description": "Nuki Bridge (oder ein daran angebundenes Gerät)"
+        }
+      }
     },
     "bridge_delete_callback": {
       "name": "Bridge-Callback löschen",

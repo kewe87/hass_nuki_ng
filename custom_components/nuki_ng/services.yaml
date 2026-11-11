@@ -1,12 +1,18 @@
 bridge_reboot:
-  target:
-    device:
-      integration: nuki_ng
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: nuki_ng
 
 bridge_fwupdate:
-  target:
-    device:
-      integration: nuki_ng
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: nuki_ng
 
 bridge_delete_callback:
   fields:
@@ -22,8 +28,6 @@ bridge_delete_callback:
         text: {}
 execute_action:
   target:
-    device:
-      integration: nuki_ng
     entity:
       integration: nuki_ng
   fields:

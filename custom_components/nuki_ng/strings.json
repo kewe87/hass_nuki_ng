@@ -82,11 +82,23 @@
   "services": {
     "bridge_reboot": {
       "name": "Reboot bridge",
-      "description": "Reboots the Nuki bridge (admin only)."
+      "description": "Reboots the Nuki bridge (admin only).",
+      "fields": {
+        "device_id": {
+          "name": "Bridge",
+          "description": "Nuki bridge (or a device connected to it)"
+        }
+      }
     },
     "bridge_fwupdate": {
       "name": "Update bridge firmware",
-      "description": "Checks for and installs firmware updates of the bridge and its devices (admin only)."
+      "description": "Checks for and installs firmware updates of the bridge and its devices (admin only).",
+      "fields": {
+        "device_id": {
+          "name": "Bridge",
+          "description": "Nuki bridge (or a device connected to it)"
+        }
+      }
     },
     "bridge_delete_callback": {
       "name": "Delete bridge callback",
