@@ -3,45 +3,110 @@
   "config": {
     "step": {
       "user": {
-        "title": "Neues Nuki Gerät",
+        "title": "Neues Nuki-Gerät",
+        "description": "Nuki Bridge (lokal, empfohlen) und/oder die Nuki Web API verbinden.",
         "data": {
           "name": "Name des Eintrags (optional)",
-          "address": "Hostname oder IP-Adresse der Nuki Bridge",
-          "token": "Bridge Api Token",
-          "web_token": "Web Api Token",
-          "hass_url": "Home Assistant interne URL",
-          "update_seconds": "Intervall der Statusabfrage (Sekunden)"
+          "address": "Hostname oder IP der Nuki Bridge (optional :Port)",
+          "token": "Bridge-API-Token",
+          "web_token": "Web-API-Token (optional)",
+          "hass_url": "Home-Assistant-URL für Bridge-Callbacks (HTTP, leer = automatisch)",
+          "update_seconds": "Abfrageintervall"
+        }
+      },
+      "reauth_confirm": {
+        "title": "{name} neu anmelden",
+        "description": "Die Bridge hat das API-Token abgelehnt. Bitte das aktuelle Token eingeben (Nuki-App: Bridge > Verwalten > API).",
+        "data": {
+          "token": "Bridge-API-Token",
+          "web_token": "Web-API-Token (optional)"
         }
       }
     },
     "error": {
-      "invalid_bridge_token": "Fehler in der Kommunikation mit der Nuki Bridge",
-      "invalid_web_token": "Fehler in der Kommunikation mit der Nuki Web API",
-      "no_token": "Entweder ist ein Bridge-Token oder ein Web-API-Token erforderlich",
-      "no_bridge_url": "Die Adresse der Bridge ist erforderlich",
-      "https_not_supported": "Die Bridge unterstützt keine HTTPS Callbacks. Bitte mache Home Assistant über HTTP verfügbar"
+      "invalid_bridge_token": "Die Bridge hat das Token abgelehnt",
+      "cannot_connect": "Keine Verbindung zur Bridge",
+      "no_devices": "Die Bridge meldet keine gekoppelten Geräte",
+      "invalid_web_token": "Fehler bei der Kommunikation mit der Nuki Web API",
+      "no_token": "Bridge-Token oder Web-API-Token ist erforderlich",
+      "no_bridge_url": "Bridge-Adresse ist erforderlich",
+      "https_not_supported": "Die Bridge unterstützt keine HTTPS-Callbacks. Home Assistant muss per HTTP erreichbar sein",
+      "wrong_bridge": "Dieses Token gehört zu einer anderen Bridge"
+    },
+    "abort": {
+      "already_configured": "Diese Bridge ist bereits eingerichtet",
+      "reauth_successful": "Neuanmeldung erfolgreich"
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Nuki Gerät konfigurieren",
-        "description": "Home-Assistant-URL, an die die Bridge Statusänderungen schickt (nur HTTP). Leer lassen für automatische Erkennung.",
+        "title": "Nuki-Gerät konfigurieren",
+        "description": "Home-Assistant-URL, die die Bridge für Push-Updates aufruft (nur HTTP). Leer lassen für automatische Erkennung.",
         "data": {
           "hass_url": "Home-Assistant-URL für Bridge-Callbacks (leer = automatisch)",
-          "update_seconds": "Intervall der Statusabfrage (Sekunden)",
-          "action_retries": "Wiederholungen bei fehlgeschlagenen Aktionen"
+          "update_seconds": "Abfrageintervall",
+          "action_retries": "Wiederholungen bei fehlgeschlagenen Aktionen",
+          "auth_mode": "Bridge-Authentifizierung"
+        },
+        "data_description": {
+          "action_retries": "Öffnende Aktionen (Öffnen, Falle ziehen, Türsummer) werden nur wiederholt, wenn die Bridge sie sicher nicht ausgeführt hat, und nie später als 35 s nach der Anfrage.",
+          "auth_mode": "Automatisch nutzt das verschlüsselte Token (Bridge-Firmware ab 2.14.0) und weicht auf das veraltete Hash-Token aus. Das Klartext-Token überträgt das Geheimnis unverschlüsselt."
         }
       }
     },
     "error": {
-      "https_not_supported": "Die Bridge unterstützt keine HTTPS Callbacks. Bitte mache Home Assistant über HTTP verfügbar"
+      "https_not_supported": "Die Bridge unterstützt keine HTTPS-Callbacks. Home Assistant muss per HTTP erreichbar sein"
+    }
+  },
+  "selector": {
+    "auth_mode": {
+      "options": {
+        "auto": "Automatisch (empfohlen)",
+        "encrypted": "Verschlüsseltes Token",
+        "hashed": "Hash-Token (veraltet)",
+        "plain": "Klartext-Token (unsicher)"
+      }
     }
   },
   "issues": {
     "callback_unreachable": {
-      "title": "Nuki Bridge kann keine Statusänderungen senden",
-      "description": "Die Callback-URL {url} ist nicht erreichbar, Schloss und Opener werden nur per Abfrage aktualisiert. Trage in den Optionen der Integration Nuki Lock eine erreichbare HTTP-URL von Home Assistant ein (oder lass das Feld leer für die automatische Erkennung)."
+      "title": "Nuki Bridge kann keine Push-Updates senden",
+      "description": "Die Callback-URL {url} ist nicht erreichbar, Schloss- und Opener-Zustände kommen nur per Abfrage. Bitte in den Optionen der Integration Nuki Lock eine erreichbare HTTP-URL von Home Assistant eintragen (oder leer lassen für automatische Erkennung)."
+    },
+    "callback_slots_full": {
+      "title": "Nuki Bridge hat keinen freien Callback-Platz",
+      "description": "Alle 3 Callback-Plätze der Nuki Bridge sind von anderen Systemen belegt, Home Assistant bekommt daher keine Push-Updates. Bitte einen ungenutzten Callback entfernen (z. B. mit der Aktion nuki_ng.bridge_delete_callback)."
+    }
+  },
+  "services": {
+    "bridge_reboot": {
+      "name": "Bridge neu starten",
+      "description": "Startet die Nuki Bridge neu (nur Admins)."
+    },
+    "bridge_fwupdate": {
+      "name": "Bridge-Firmware aktualisieren",
+      "description": "Sucht und installiert Firmware-Updates der Bridge und ihrer Geräte (nur Admins)."
+    },
+    "bridge_delete_callback": {
+      "name": "Bridge-Callback löschen",
+      "description": "Entfernt eine Callback-URL von der Bridge (nur Admins).",
+      "fields": {
+        "command": {
+          "name": "Callback-URL",
+          "description": "Zu löschende URL"
+        }
+      }
+    },
+    "execute_action": {
+      "name": "Schlossaktion ausführen",
+      "description": "Führt eine Aktion am gewählten Schloss oder Opener aus und prüft sie. Liefert je Gerät Erfolg, Versuche und Ergebnis (success, not_executed, unknown).",
+      "fields": {
+        "action": {
+          "name": "Aktion",
+          "description": "Auszuführende Schlossaktion"
+        }
+      }
     }
   }
 }

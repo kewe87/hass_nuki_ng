@@ -4,22 +4,38 @@
     "step": {
       "user": {
         "title": "New Nuki device",
+        "description": "Connect a Nuki Bridge (local, recommended) and/or the Nuki Web API.",
         "data": {
           "name": "Entry name (optional)",
-          "address": "Nuki bridge hostname or IP address",
-          "token": "Bridge Api token",
-          "web_token": "Web Api token",
-          "hass_url": "Home Assistant internal URL",
-          "update_seconds": "State polling interval (seconds)"
+          "address": "Nuki bridge hostname or IP address (optional :port)",
+          "token": "Bridge API token",
+          "web_token": "Web API token (optional)",
+          "hass_url": "Home Assistant URL for bridge callbacks (HTTP, empty = automatic)",
+          "update_seconds": "State polling interval"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate {name}",
+        "description": "The bridge rejected the API token. Enter the current token (Nuki app: Bridge > Manage > API).",
+        "data": {
+          "token": "Bridge API token",
+          "web_token": "Web API token (optional)"
         }
       }
     },
     "error": {
-      "invalid_bridge_token": "Error communicating with Nuki bridge",
+      "invalid_bridge_token": "The bridge rejected the token",
+      "cannot_connect": "Cannot connect to the bridge",
+      "no_devices": "The bridge reports no paired devices",
       "invalid_web_token": "Error communicating with Nuki Web API",
       "no_token": "Either Bridge token or Web API token is required",
       "no_bridge_url": "Bridge address is required",
-      "https_not_supported": "Bridge doesn't support HTTPS callbacks. Please make your Home Assistant accessible via HTTP"
+      "https_not_supported": "Bridge doesn't support HTTPS callbacks. Please make your Home Assistant accessible via HTTP",
+      "wrong_bridge": "This token belongs to a different bridge"
+    },
+    "abort": {
+      "already_configured": "This bridge is already configured",
+      "reauth_successful": "Re-authentication was successful"
     }
   },
   "options": {
@@ -29,8 +45,13 @@
         "description": "Home Assistant URL used by the bridge for push updates (HTTP only). Leave empty to detect it automatically.",
         "data": {
           "hass_url": "Home Assistant URL for bridge callbacks (empty = automatic)",
-          "update_seconds": "State polling interval (seconds)",
-          "action_retries": "Retries for failed lock actions"
+          "update_seconds": "State polling interval",
+          "action_retries": "Retries for failed lock actions",
+          "auth_mode": "Bridge authentication"
+        },
+        "data_description": {
+          "action_retries": "Opening actions (open, unlatch, electric strike) are only repeated when the bridge certainly did not execute them, and never later than 35 s after the request.",
+          "auth_mode": "Automatic uses the encrypted token (bridge firmware >= 2.14.0) and falls back to the deprecated hashed token. The plain token sends the secret unencrypted."
         }
       }
     },
@@ -38,10 +59,54 @@
       "https_not_supported": "Bridge doesn't support HTTPS callbacks. Please make your Home Assistant accessible via HTTP"
     }
   },
+  "selector": {
+    "auth_mode": {
+      "options": {
+        "auto": "Automatic (recommended)",
+        "encrypted": "Encrypted token",
+        "hashed": "Hashed token (deprecated)",
+        "plain": "Plain token (insecure)"
+      }
+    }
+  },
   "issues": {
     "callback_unreachable": {
       "title": "Nuki bridge can't send push updates",
       "description": "The callback URL {url} is not reachable, so lock and opener states only update by polling. Set a reachable HTTP URL of Home Assistant in the Nuki Lock integration options (or leave it empty for automatic detection)."
+    },
+    "callback_slots_full": {
+      "title": "Nuki bridge has no free callback slot",
+      "description": "All 3 callback slots of the Nuki bridge are used by other systems, so Home Assistant receives no push updates. Remove an unused callback (e.g. with the action nuki_ng.bridge_delete_callback)."
+    }
+  },
+  "services": {
+    "bridge_reboot": {
+      "name": "Reboot bridge",
+      "description": "Reboots the Nuki bridge (admin only)."
+    },
+    "bridge_fwupdate": {
+      "name": "Update bridge firmware",
+      "description": "Checks for and installs firmware updates of the bridge and its devices (admin only)."
+    },
+    "bridge_delete_callback": {
+      "name": "Delete bridge callback",
+      "description": "Removes a callback URL from the bridge (admin only).",
+      "fields": {
+        "command": {
+          "name": "Callback URL",
+          "description": "URL to delete"
+        }
+      }
+    },
+    "execute_action": {
+      "name": "Execute lock action",
+      "description": "Runs a lock action on the targeted lock or opener and verifies it. Returns success, attempts and outcome (success, not_executed, unknown) per device.",
+      "fields": {
+        "action": {
+          "name": "Action",
+          "description": "Lock action to execute"
+        }
+      }
     }
   }
 }
