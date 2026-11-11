@@ -2,6 +2,14 @@
 
 # Änderungsprotokoll
 
+## 0.7.1 – 11.11.2026
+
+- README überarbeitet: Vergleich zuerst, auf dem Handy gut lesbar; README und Änderungsprotokoll auch auf Deutsch.
+- Prüfung mit hassfest und der HACS-Action bei jedem Push.
+- Bridge-Wartungsaktionen wählen die Bridge über ein Gerätefeld statt über ein Ziel
+  (YAML mit `target: device_id` funktioniert weiter).
+- Manifest-Schlüssel sortiert, `hacs.json` aufgeräumt.
+
 ## 0.7.0 – 11.11.2026
 
 Ab dieser Version ein eigenständiges Projekt (basiert auf kvj/hass_nuki_ng, siehe [LICENSE](LICENSE)).

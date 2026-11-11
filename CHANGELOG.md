@@ -2,6 +2,14 @@
 
 # Changelog
 
+## 0.7.1 – 2026-11-11
+
+- README reworked: comparison first, readable on phones; German README and changelog.
+- Validation with hassfest and the HACS action on every push.
+- Bridge maintenance actions select the bridge with a device field instead of a target
+  (YAML with `target: device_id` keeps working).
+- Manifest keys sorted, `hacs.json` cleaned up.
+
 ## 0.7.0 – 2026-11-11
 
 Independent project from this version on (based on kvj/hass_nuki_ng, see [LICENSE](LICENSE)).
