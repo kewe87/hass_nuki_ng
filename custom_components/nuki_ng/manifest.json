@@ -1,18 +1,18 @@
 {
   "domain": "nuki_ng",
   "name": "Nuki Lock",
-  "documentation": "https://github.com/kewe87/hass_nuki_ng",
-  "issue_tracker": "https://github.com/kewe87/hass_nuki_ng/issues",
-  "dependencies": [
-    "webhook"
-  ],
   "codeowners": [
     "@kewe87"
   ],
+  "config_flow": true,
+  "dependencies": [
+    "webhook"
+  ],
+  "documentation": "https://github.com/kewe87/hass_nuki_ng",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/kewe87/hass_nuki_ng/issues",
   "requirements": [
     "PyNaCl>=1.5.0"
   ],
-  "iot_class": "local_push",
-  "config_flow": true,
-  "version": "0.7.0"
+  "version": "0.7.1"
 }

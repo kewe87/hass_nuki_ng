@@ -1,14 +1,4 @@
 {
-    "name": "Nuki Lock",
-    "domains": [
-        "lock",
-        "binary_sensor",
-        "sensor",
-        "switch",
-        "select",
-        "button",
-        "event"
-    ],
-    "homeassistant": "2024.12.0",
-    "render_readme": true
+  "name": "Nuki Lock",
+  "homeassistant": "2024.12.0"
 }
