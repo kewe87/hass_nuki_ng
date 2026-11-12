@@ -79,6 +79,7 @@ WEB_TIMEOUT = 20
 # After a failed action: wait for the bridge to answer again (it reboots
 # itself after BLE failures, which takes ~15-20 s).
 ACTION_RETRY_MIN_WAIT = 5
+ACTION_RETRY_FAST_WAIT = 1
 ACTION_RETRY_MAX_WAIT = 60
 # Actions that open a door must not happen late: no new attempt is started
 # after this many seconds. Lock/unlock may take longer.
@@ -1131,7 +1132,12 @@ class NukiCoordinator(DataUpdateCoordinator):
                     break
                 if attempt >= attempts_max or time.monotonic() >= deadline:
                     break
-                await self._wait_for_bridge(deadline)
+                if reported:
+                    # The bridge answered "success: false" (typically a BLE connection drop
+                    # to the device), so it is up: retry quickly instead of waiting for a reboot.
+                    await asyncio.sleep(min(ACTION_RETRY_FAST_WAIT, max(0, deadline - time.monotonic())))
+                else:
+                    await self._wait_for_bridge(deadline)
                 if self._closing or time.monotonic() >= deadline:
                     break
                 state = await self._state_after(dev_id)

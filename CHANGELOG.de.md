@@ -2,6 +2,11 @@
 
 # Änderungsprotokoll
 
+## 0.7.2 – 12.11.2026
+
+- Schnellere Wiederholung, wenn die Bridge eine Aktion als fehlgeschlagen meldet (meist ein Bluetooth-Abbruch
+  zum Gerät): der nächste Versuch startet nach 1 s statt 5 s, die Tür öffnet nach einem Aussetzer also früher.
+
 ## 0.7.1 – 11.11.2026
 
 - README überarbeitet: Vergleich zuerst, auf dem Handy gut lesbar; README und Änderungsprotokoll auch auf Deutsch.

@@ -2,6 +2,11 @@
 
 # Changelog
 
+## 0.7.2 – 2026-11-12
+
+- Faster retry when the bridge reports a failed action (usually a dropped Bluetooth connection to the device):
+  the next attempt starts after 1 s instead of 5 s, so the door opens sooner after a hiccup.
+
 ## 0.7.1 – 2026-11-11
 
 - README reworked: comparison first, readable on phones; German README and changelog.
