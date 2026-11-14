@@ -196,6 +196,10 @@ tap_action:
 - Die Bridge hält max. 3 Callbacks. nuki_ng fasst nur den eigenen an.
 - Keine sehr kurzen Abfrageintervalle – jede Anfrage blockiert die Bridge.
 
+## Gefällt dir nuki_ng?
+
+Dann freue ich mich über einen ⭐ auf [GitHub](https://github.com/kewe87/hass_nuki_ng). Das hilft anderen, das Projekt zu finden. Fehler und Ideen gerne als [Issue](https://github.com/kewe87/hass_nuki_ng/issues).
+
 ## Änderungen
 
 [CHANGELOG.de.md](CHANGELOG.de.md) · [Releases](https://github.com/kewe87/hass_nuki_ng/releases)
