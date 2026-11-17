@@ -2,6 +2,11 @@
 
 # Änderungsprotokoll
 
+## 0.7.4 – 17.11.2026
+
+- Zeigt wieder das Nuki-Logo (hell und dunkel) wie das ursprüngliche nuki_ng, damit man die Integration sofort erkennt.
+- README: klarer rechtlicher Hinweis – kostenloses, inoffizielles Hobbyprojekt; Name und Logo von Nuki gehören der Nuki Home Solutions GmbH.
+
 ## 0.7.3 – 17.11.2026
 
 - Eigenes Icon (`brand/icon.png`, `brand/icon@2x.png`), damit die Integration in Home Assistant mit Symbol erscheint.

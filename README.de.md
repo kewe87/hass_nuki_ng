@@ -12,7 +12,8 @@ Smart Locks und Opener, lokaler Push über die Nuki Bridge, optional die Nuki We
 > Und sie öffnet nie doppelt oder verspätet.**
 
 > [!NOTE]
-> Inoffizielles Projekt – nicht mit der Nuki Home Solutions GmbH verbunden, nicht von ihr unterstützt oder empfohlen.
+> Kostenloses, inoffizielles Hobbyprojekt – nicht mit der Nuki Home Solutions GmbH verbunden, nicht von ihr unterstützt oder empfohlen.
+> Name und Logo von Nuki © Nuki Home Solutions GmbH, siehe [Rechtlicher Hinweis](#rechtlicher-hinweis).
 
 ## Warum nuki_ng?
 
@@ -212,4 +213,12 @@ Dann freue ich mich über einen ⭐ auf [GitHub](https://github.com/kewe87/hass_
 MIT – siehe [LICENSE](LICENSE).
 Ursprüngliches Werk © 2021 Konstantin ([kvj/hass_nuki_ng](https://github.com/kvj/hass_nuki_ng)), Änderungen © 2026 kewe87.
 
-*Nuki* und das Nuki-Logo sind Marken der Nuki Home Solutions GmbH; alle Rechte daran liegen bei Nuki. Der Name dient nur als Hinweis, mit welchen Geräten diese Integration funktioniert. Dies ist ein unabhängiges Community-Projekt, nicht mit Nuki verbunden und nicht von Nuki unterstützt oder empfohlen. Das Icon ist ein eigener Entwurf und nicht das Nuki-Logo. Bereitgestellt „wie besehen“, ohne Gewährleistung.
+## Rechtlicher Hinweis
+
+nuki_ng ist ein kostenloses Hobbyprojekt, von Nuki-Fans für Nuki-Fans: Nuki baut großartige smarte Schlösser, und dieses Projekt möchte, dass sie sich auch in Home Assistant zuhause fühlen.
+
+Es ist **kein** offizielles Nuki-Produkt und steht in keiner Verbindung zur Nuki Home Solutions GmbH; es wird von ihr weder unterstützt noch empfohlen.
+Der Name *Nuki* und das Nuki-Logo sind Marken der Nuki Home Solutions GmbH; alle Rechte daran (auch das Urheberrecht am Logo) liegen bei Nuki. Sie dienen hier ausschließlich als Hinweis, mit welchen Geräten diese Integration funktioniert.
+Wünscht Nuki die Entfernung des Logos, genügt ein [Issue](https://github.com/kewe87/hass_nuki_ng/issues) – es wird umgehend entfernt.
+
+Bereitgestellt „wie besehen“, ohne Gewährleistung.
