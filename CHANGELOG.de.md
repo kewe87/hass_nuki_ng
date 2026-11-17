@@ -2,6 +2,10 @@
 
 # Änderungsprotokoll
 
+## 0.7.3 – 17.11.2026
+
+- Eigenes Icon (`brand/icon.png`, `brand/icon@2x.png`), damit die Integration in Home Assistant mit Symbol erscheint.
+
 ## 0.7.2 – 12.11.2026
 
 - Schnellere Wiederholung, wenn die Bridge eine Aktion als fehlgeschlagen meldet (meist ein Bluetooth-Abbruch

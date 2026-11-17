@@ -2,6 +2,10 @@
 
 # Changelog
 
+## 0.7.3 – 2026-11-17
+
+- Brand icon (`brand/icon.png`, `brand/icon@2x.png`), so the integration shows an icon in Home Assistant.
+
 ## 0.7.2 – 2026-11-12
 
 - Faster retry when the bridge reports a failed action (usually a dropped Bluetooth connection to the device):
