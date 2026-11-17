@@ -5,11 +5,14 @@
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz/docs/faq/custom_repositories)
 [![Lizenz: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Die sichere und zuverlässige Nuki-Integration für Home Assistant.
+Eine sichere und zuverlässige Community-Integration für Nuki-Geräte in Home Assistant.
 Smart Locks und Opener, lokaler Push über die Nuki Bridge, optional die Nuki Web-API.
 
 > **Wenn Home Assistant sagt, die Tür wurde geöffnet, dann wurde sie geöffnet.
 > Und sie öffnet nie doppelt oder verspätet.**
+
+> [!NOTE]
+> Inoffizielles Projekt – nicht mit der Nuki Home Solutions GmbH verbunden, nicht von ihr unterstützt oder empfohlen.
 
 ## Warum nuki_ng?
 
@@ -209,4 +212,4 @@ Dann freue ich mich über einen ⭐ auf [GitHub](https://github.com/kewe87/hass_
 MIT – siehe [LICENSE](LICENSE).
 Ursprüngliches Werk © 2021 Konstantin ([kvj/hass_nuki_ng](https://github.com/kvj/hass_nuki_ng)), Änderungen © 2026 kewe87.
 
-*Nuki* ist eine Marke der Nuki Home Solutions GmbH. Dies ist ein unabhängiges Projekt, nicht mit Nuki verbunden und nicht von Nuki unterstützt. Bereitgestellt „wie besehen“, ohne Gewährleistung.
+*Nuki* und das Nuki-Logo sind Marken der Nuki Home Solutions GmbH; alle Rechte daran liegen bei Nuki. Der Name dient nur als Hinweis, mit welchen Geräten diese Integration funktioniert. Dies ist ein unabhängiges Community-Projekt, nicht mit Nuki verbunden und nicht von Nuki unterstützt oder empfohlen. Das Icon ist ein eigener Entwurf und nicht das Nuki-Logo. Bereitgestellt „wie besehen“, ohne Gewährleistung.
