@@ -58,9 +58,11 @@ Core = Home Assistant 2026.11 (pynuki 1.6.3), kvj = kvj/hass_nuki_ng 0.5.5, am Q
 
 **Umstieg von kvj ohne Aufwand:** gleiche Domain, gleiche Entitäts-IDs.
 
-> **Credits:** Basiert auf [kvj/hass_nuki_ng](https://github.com/kvj/hass_nuki_ng)
-> von Konstantin (MIT). Ursprünglicher Copyright- und Lizenzhinweis bleiben in [LICENSE](LICENSE) erhalten.
-> Seit 0.7.0 grundlegend überarbeitet und eigenständig weiterentwickelt.
+> [!TIP]
+> **Danke, Konstantin!** nuki_ng begann als [kvj/hass_nuki_ng](https://github.com/kvj/hass_nuki_ng) von Konstantin ([kvj](https://github.com/kvj)).
+> Seine Arbeit hat das Fundament gelegt – Bridge-Callbacks, Web-API-Anbindung und das Entitätsmodell – und vielen Nuki-Nutzern seit 2021 gute Dienste geleistet. Danke für diese tolle Arbeit!
+> Dieses Projekt ist eine verbesserte, eigenständig weiterentwickelte Fortführung davon (seit 0.7.0), veröffentlicht unter derselben MIT-Lizenz.
+> Der ursprüngliche Copyright- und Lizenzhinweis bleibt in [LICENSE](LICENSE) erhalten.
 
 ## Was den Unterschied macht
 
