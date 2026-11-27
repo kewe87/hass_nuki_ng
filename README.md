@@ -90,9 +90,10 @@ Core = Home Assistant 2026.11 (pynuki 1.6.3), kvj = kvj/hass_nuki_ng 0.5.5, chec
 
 [![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=kewe87&repository=hass_nuki_ng&category=integration)
 
-1. HACS → ⋮ → *Custom repositories*
-2. Add `https://github.com/kewe87/hass_nuki_ng`, type *Integration*
-3. Install **Nuki Lock**, restart Home Assistant
+1. In HACS, search for **Nuki Lock** (by kewe87) and install it
+2. Restart Home Assistant
+
+If it does not show up yet: HACS → ⋮ → *Custom repositories*, add `https://github.com/kewe87/hass_nuki_ng` with type *Integration*, then install **Nuki Lock**.
 
 **Coming from kvj:** remove the old repository from HACS (keep the integration), install this one, restart.
 
