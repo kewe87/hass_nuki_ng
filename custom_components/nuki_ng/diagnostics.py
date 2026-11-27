@@ -22,6 +22,16 @@ async def async_get_config_entry_diagnostics(hass, entry):
             "last_action_error": coordinator.last_action_error,
             "bridge_last_restart": str(coordinator.bridge_last_restart),
             "action_retries": coordinator.action_retries,
+            "status": coordinator.health_status(),
+            "checks": [c.as_dict() for c in coordinator.passive_checks()],
+            "last_checkup": coordinator.last_checkup,
+            "bridge_log": {
+                "watching": coordinator.watch_log,
+                "read_at": coordinator.bridge_log.read_at,
+                "problems_24h": [e.__dict__ for e in coordinator.bridge_log.events],
+                "totals": coordinator.bridge_log.totals,
+            },
+            "actions": {k: v.as_dict() for k, v in coordinator.action_stats.items()},
         },
         "data": async_redact_data(coordinator.data or {}, TO_REDACT),
     }

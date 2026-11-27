@@ -47,3 +47,13 @@ execute_action:
             - electric_strike_actuation
             - activate_continuous_mode
             - deactivate_continuous_mode
+
+checkup:
+  target:
+    device:
+      integration: nuki_ng
+  fields:
+    notify:
+      default: false
+      selector:
+        boolean: {}

@@ -2,9 +2,11 @@ from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, Sen
 from homeassistant.helpers.entity import EntityCategory
 
 import logging
+import time
 from datetime import datetime
 
 from . import NukiEntity, NukiBridge
+from . import health
 from .states import DoorSensorStates, LockStates, DoorSecurityStates
 
 _LOGGER = logging.getLogger(__name__)
@@ -19,10 +21,16 @@ async def async_setup_entry(hass, entry, async_add_entities):
         entities.append(BridgeVersion(coordinator))
         entities.append(BridgeLastRestart(coordinator))
         entities.append(BridgeFailedActions(coordinator))
+        if coordinator.watch_log:
+            entities.append(BridgeDataErrors(coordinator))
+    entities.append(BridgeHealth(coordinator))
     for dev_id in coordinator.data.get("devices", {}):
         entities.append(LockState(coordinator, dev_id))
         if coordinator.api.can_bridge():
             entities.append(RSSI(coordinator, dev_id))
+            if coordinator.watch_log:
+                entities.append(BluetoothDrops(coordinator, dev_id))
+        entities.append(LastAction(coordinator, dev_id))
         entities.append(LockVersion(coordinator, dev_id))
         if coordinator.device_supports(dev_id, "batteryChargeState"):
             entities.append(Battery(coordinator, dev_id))
@@ -267,7 +275,7 @@ class BridgeLastRestart(NukiBridge, SensorEntity):
 
 
 class BridgeFailedActions(NukiBridge, SensorEntity):
-    """Failed action attempts since Home Assistant start (incl. retried ones)."""
+    """Failed action attempts (incl. retried ones), kept across restarts."""
 
     def __init__(self, coordinator):
         super().__init__(coordinator)
@@ -284,3 +292,103 @@ class BridgeFailedActions(NukiBridge, SensorEntity):
     @property
     def extra_state_attributes(self):
         return {"last_error": self.coordinator.last_action_error}
+
+
+class BridgeHealth(NukiBridge, SensorEntity):
+    """ok / warning / problem from what is known; the check-up button asks the bridge too."""
+
+    def __init__(self, coordinator):
+        super().__init__(coordinator)
+        self.set_id("health")
+        self.set_name("Health")
+        self._attr_device_class = SensorDeviceClass.ENUM
+        self._attr_options = [health.OK, health.WARNING, health.PROBLEM]
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        self._attr_icon = "mdi:stethoscope"
+
+    @property
+    def native_value(self):
+        return self.coordinator.health_status()
+
+    @property
+    def extra_state_attributes(self):
+        checks = self.coordinator.passive_checks()
+        last = self.coordinator.last_checkup or {}
+        return {
+            "problems": [f"{c.title}: {c.detail}" for c in checks if c.status != health.OK],
+            "last_checkup": last.get("at"),
+            "last_checkup_status": last.get("status"),
+        }
+
+
+class BridgeDataErrors(NukiBridge, SensorEntity):
+    """UART errors of the bridge in the last 24 h, a sign of a weak power supply."""
+
+    def __init__(self, coordinator):
+        super().__init__(coordinator)
+        self.set_id("uart_errors")
+        self.set_name("Data Errors 24h")
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        self._attr_icon = "mdi:flash-alert-outline"
+
+    @property
+    def native_value(self):
+        return self.coordinator.bridge_problems(health.UART)
+
+    @property
+    def extra_state_attributes(self):
+        return {
+            "restarts_24h": self.coordinator.bridge_problems(health.RESTART),
+            "bluetooth_failures_24h": self.coordinator.bridge_problems(health.BLE_FAILURE),
+            "log_read_at": self.coordinator.bridge_log.read_at,
+        }
+
+
+class BluetoothDrops(NukiEntity, SensorEntity):
+    """Early Bluetooth disconnects between the bridge and this device in the last 24 h."""
+
+    def __init__(self, coordinator, device_id):
+        super().__init__(coordinator, device_id)
+        self.set_id("sensor", "ble_drops")
+        self.set_name("Bluetooth Drops 24h")
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        self._attr_icon = "mdi:bluetooth-off"
+
+    @property
+    def native_value(self):
+        return self.coordinator.ble_drops(self.device_id)
+
+
+class LastAction(NukiEntity, SensorEntity):
+    """How long the last command took, with its result."""
+
+    def __init__(self, coordinator, device_id):
+        super().__init__(coordinator, device_id)
+        self.set_id("sensor", "last_action")
+        self.set_name("Last Action Duration")
+        self._attr_device_class = SensorDeviceClass.DURATION
+        self._attr_native_unit_of_measurement = "s"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        self._attr_icon = "mdi:timer-outline"
+
+    @property
+    def native_value(self):
+        last = self.coordinator.stats_for(self.device_id).last
+        return None if last is None else last.seconds
+
+    @property
+    def extra_state_attributes(self):
+        stats = self.coordinator.stats_for(self.device_id)
+        last = stats.last
+        attrs = {f"{k}_24h": v for k, v in stats.day(time.time()).items()}
+        attrs.update(total=stats.total, total_failed=stats.failed, total_retried=stats.retried)
+        if last:
+            attrs.update(
+                action=last.action, success=last.success, attempts=last.attempts,
+                confirmed_by=last.confirmed_by, error=last.error,
+                at=datetime.fromtimestamp(last.at).astimezone().isoformat(timespec="seconds"),
+            )
+        return attrs

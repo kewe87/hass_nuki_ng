@@ -7,8 +7,10 @@ import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.core import callback
+from homeassistant.data_entry_flow import section
 from homeassistant.helpers.network import NoURLAvailableError, get_url
 from homeassistant.helpers.selector import (
+    BooleanSelector,
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
@@ -25,6 +27,15 @@ from .constants import (
     AUTH_MODES,
     CONF_ACTION_RETRIES,
     CONF_AUTH_MODE,
+    CONF_LOGBOOK,
+    CONF_PROBLEM_LOG_LEVEL,
+    CONF_REPAIRS,
+    CONF_WATCH_LOG,
+    DEFAULT_LOGBOOK,
+    DEFAULT_PROBLEM_LOG_LEVEL,
+    DEFAULT_REPAIRS,
+    DEFAULT_WATCH_LOG,
+    PROBLEM_LOG_LEVELS,
     CONF_WEBHOOK_ID,
     DEFAULT_ACTION_RETRIES,
     DOMAIN,
@@ -198,6 +209,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         "update_seconds": int(user_input["update_seconds"]),
                         CONF_ACTION_RETRIES: int(user_input[CONF_ACTION_RETRIES]),
                         CONF_AUTH_MODE: user_input[CONF_AUTH_MODE],
+                        **_diagnostics(user_input.get("diagnostics") or {}, current),
                     }
                 )
         schema = vol.Schema({
@@ -217,5 +229,34 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     translation_key=CONF_AUTH_MODE,
                 )
             ),
+            vol.Required("diagnostics"): section(
+                vol.Schema({
+                    vol.Required(CONF_WATCH_LOG, default=bool(current.get(CONF_WATCH_LOG, DEFAULT_WATCH_LOG))): BooleanSelector(),
+                    vol.Required(
+                        CONF_PROBLEM_LOG_LEVEL,
+                        default=current.get(CONF_PROBLEM_LOG_LEVEL, DEFAULT_PROBLEM_LOG_LEVEL),
+                    ): SelectSelector(
+                        SelectSelectorConfig(
+                            options=PROBLEM_LOG_LEVELS,
+                            mode=SelectSelectorMode.DROPDOWN,
+                            translation_key=CONF_PROBLEM_LOG_LEVEL,
+                        )
+                    ),
+                    vol.Required(CONF_LOGBOOK, default=bool(current.get(CONF_LOGBOOK, DEFAULT_LOGBOOK))): BooleanSelector(),
+                    vol.Required(CONF_REPAIRS, default=bool(current.get(CONF_REPAIRS, DEFAULT_REPAIRS))): BooleanSelector(),
+                }),
+                {"collapsed": True},
+            ),
         })
         return self.async_show_form(step_id="init", data_schema=schema, errors=errors)
+
+
+def _diagnostics(values: dict, current: dict) -> dict:
+    """The diagnostics section, stored flat next to the other options."""
+    defaults = {
+        CONF_WATCH_LOG: DEFAULT_WATCH_LOG,
+        CONF_PROBLEM_LOG_LEVEL: DEFAULT_PROBLEM_LOG_LEVEL,
+        CONF_LOGBOOK: DEFAULT_LOGBOOK,
+        CONF_REPAIRS: DEFAULT_REPAIRS,
+    }
+    return {key: values.get(key, current.get(key, default)) for key, default in defaults.items()}

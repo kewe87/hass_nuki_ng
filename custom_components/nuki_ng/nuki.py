@@ -34,13 +34,14 @@ import aiohttp
 from aiohttp import web
 from nacl.secret import SecretBox
 
-from homeassistant.components import webhook
+from homeassistant.components import persistent_notification, webhook
 from homeassistant.core import CALLBACK_TYPE, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.network import NoURLAvailableError, get_url
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
     UpdateFailed,
@@ -54,11 +55,23 @@ from .constants import (
     AUTH_PLAIN,
     CONF_ACTION_RETRIES,
     CONF_AUTH_MODE,
+    CONF_LOGBOOK,
+    CONF_PROBLEM_LOG_LEVEL,
+    CONF_REPAIRS,
+    CONF_WATCH_LOG,
     CONF_WEBHOOK_ID,
     DEFAULT_ACTION_RETRIES,
+    DEFAULT_LOGBOOK,
+    DEFAULT_PROBLEM_LOG_LEVEL,
+    DEFAULT_REPAIRS,
+    DEFAULT_WATCH_LOG,
     DOMAIN,
+    EVENT_ACTION,
+    EVENT_PROBLEM,
     OPEN_ACTIONS,
 )
+from . import health
+from .health import ActionRecord, ActionStats, BridgeLog, Check
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -94,6 +107,11 @@ FAILURE_POLL_SECONDS = 20
 # How often the callback URL is checked for reachability.
 CALLBACK_CHECK_SECONDS = 900
 MAX_BRIDGE_CALLBACKS = 3
+
+# Bridge log: read rarely and in small portions, many entries at once hang the bridge HTTP
+LOG_READ_SECONDS = 600
+LOG_READ_COUNT = 100
+HEALTH_SAVE_DELAY = 60
 MAX_CALLBACK_BODY = 4096
 
 LOCK_DEVICE_TYPES = (0, 3, 4, 5)
@@ -184,6 +202,7 @@ class ActionResult:
     outcome: str  # success | not_executed | unknown
     verified: bool
     error: str | None = None
+    confirmed_by: str | None = None  # bridge | push | state | web
 
 
 _REDACT_RE = re.compile(r"(token|ctoken|nonce|hash|rnr|ts)=[^&\s]+")
@@ -351,6 +370,13 @@ class NukiInterface:
         data = await self.bridge_request("/info", timeout=timeout)
         if not isinstance(data, dict):
             raise NukiError(f"Unexpected /info response: {redact(data)}")
+        return data
+
+    async def bridge_log(self, count: int) -> list:
+        """The newest entries of the bridge log. Keep count small (see LOG_READ_COUNT)."""
+        data = await self.bridge_request("/log", {"count": int(count)})
+        if not isinstance(data, list):
+            raise NukiError(f"Unexpected /log response: {redact(data)}")
         return data
 
     async def bridge_reboot(self):
@@ -634,6 +660,16 @@ class NukiCoordinator(DataUpdateCoordinator):
         self._poll_failures = 0
         self.failed_actions = 0
         self.last_action_error = None
+        # Diagnostics
+        self.watch_log = bool(config.get(CONF_WATCH_LOG, DEFAULT_WATCH_LOG))
+        self.problem_level = getattr(logging, str(config.get(CONF_PROBLEM_LOG_LEVEL, DEFAULT_PROBLEM_LOG_LEVEL)).upper(), logging.WARNING)
+        self.logbook = bool(config.get(CONF_LOGBOOK, DEFAULT_LOGBOOK))
+        self.repairs = bool(config.get(CONF_REPAIRS, DEFAULT_REPAIRS))
+        self.bridge_log = BridgeLog()
+        self.action_stats: dict[str, ActionStats] = {}
+        self.last_checkup: dict | None = None
+        self._log_read = 0.0
+        self._health_store = Store(hass, 1, f"{DOMAIN}.{entry.entry_id}.health")
         self.bridge_last_restart = None
         self._ring_listeners = {}
         self._ring_reset = {}
@@ -647,6 +683,7 @@ class NukiCoordinator(DataUpdateCoordinator):
     # ---- Lifecycle ----------------------------------------------------
 
     async def async_start(self):
+        await self._load_health()
         await self._resolve_bridge_ips()
         webhook.async_unregister(self.hass, self.hook_id)
         webhook.async_register(
@@ -944,6 +981,11 @@ class NukiCoordinator(DataUpdateCoordinator):
             _LOGGER.info("Update succeeded again after %s failure(s)", self._poll_failures)
         self._poll_failures = 0
         self.update_interval = timedelta(seconds=self._update_seconds)
+        if self.watch_log and self.api.can_bridge() and time.monotonic() - self._log_read >= LOG_READ_SECONDS:
+            try:
+                await self._read_bridge_log(result)
+            except Exception:  # noqa: BLE001 - diagnostics never break the update
+                _LOGGER.exception("Evaluating the bridge log failed")
         return result
 
     async def _fetch(self):
@@ -1086,14 +1128,23 @@ class NukiCoordinator(DataUpdateCoordinator):
         if not self.api.can_bridge():
             if not self.api.can_web():
                 raise NukiError("Neither bridge nor web API configured")
+            started = time.monotonic()
             await self.api.web_lock_action(self.web_id(dev_id), action)
+            self._record_action(dev_id, name, action, True, 1, started, "web", None)
             await self.async_request_refresh()
             # The web API only accepts the command (HTTP 204): not verified.
-            return ActionResult(True, 1, "success", verified=False)
+            return ActionResult(True, 1, "success", verified=False, confirmed_by="web")
 
         lock = self._action_locks.setdefault(dev_id, asyncio.Lock())
         async with lock:
-            return await self._bridge_action(dev_id, name, action)
+            started = time.monotonic()
+            try:
+                result = await self._bridge_action(dev_id, name, action)
+            except NukiActionFailed as err:
+                self._record_action(dev_id, name, action, False, err.attempts, started, None, redact(err))
+                raise
+            self._record_action(dev_id, name, action, True, result.attempts, started, result.confirmed_by, None)
+            return result
 
     async def _bridge_action(self, dev_id, name, action: str) -> ActionResult:
         opening = action in OPEN_ACTIONS
@@ -1121,7 +1172,7 @@ class NukiCoordinator(DataUpdateCoordinator):
                 if not (certain or reported):
                     # Timeout or dropped connection: may have been executed.
                     outcome = "unknown"
-                _LOGGER.warning("%s: '%s' failed (attempt %s/%s): %s", name, action, attempt, attempts_max, redact(err))
+                _LOGGER.log(self.problem_level, "%s: '%s' failed (attempt %s/%s): %s", name, action, attempt, attempts_max, redact(err))
                 if self._closing:
                     break
                 if opening and self._opened_since(dev_id, started):
@@ -1164,7 +1215,7 @@ class NukiCoordinator(DataUpdateCoordinator):
             _LOGGER.info("%s: '%s' succeeded on attempt %s (confirmed by %s)", name, action, attempt, how)
         self.last_action_error = None
         self.hass.async_create_task(self.async_request_refresh(), eager_start=False)
-        return ActionResult(True, attempt, "success", verified)
+        return ActionResult(True, attempt, "success", verified, confirmed_by=how)
 
     def _action_failed(self, action, err):
         self.last_action_error = f"{action}: {redact(err)}"
@@ -1237,3 +1288,157 @@ class NukiCoordinator(DataUpdateCoordinator):
         if device:
             device[name] = updated
         self.async_update_listeners()
+
+    # ---- Diagnostics --------------------------------------------------
+
+    async def _load_health(self):
+        data = await self._health_store.async_load() or {}
+        self.bridge_log = BridgeLog(data.get("bridge_log"))
+        self.action_stats = {k: ActionStats.from_dict(v) for k, v in (data.get("actions") or {}).items()}
+        self.failed_actions = int(data.get("failed_actions", 0))
+        self.last_checkup = data.get("last_checkup")
+
+    def _health_data(self) -> dict:
+        return {
+            "bridge_log": self.bridge_log.as_dict(),
+            "actions": {k: v.as_dict() for k, v in self.action_stats.items()},
+            "failed_actions": self.failed_actions,
+            "last_checkup": self.last_checkup,
+        }
+
+    def _save_health(self):
+        self._health_store.async_delay_save(self._health_data, HEALTH_SAVE_DELAY)
+
+    def _names_by_hex(self, data: dict | None = None) -> dict:
+        devices = ((data or self.data or {}).get("devices")) or {}
+        return {health.device_hex(dev_id): item.get("name", str(dev_id)) for dev_id, item in devices.items()}
+
+    def stats_for(self, dev_id) -> ActionStats:
+        return self.action_stats.setdefault(str(dev_id), ActionStats())
+
+    def ble_drops(self, dev_id) -> int:
+        return self.bridge_log.count(health.DROP, health.device_hex(dev_id), time.time())
+
+    def bridge_problems(self, kind: str) -> int:
+        return self.bridge_log.count(kind, now=time.time(), any_device=True)
+
+    def _record_action(self, dev_id, name, action, success, attempts, started, confirmed_by, error):
+        seconds = round(time.monotonic() - started, 2)
+        record = ActionRecord(action, success, int(attempts or 1), seconds, confirmed_by, time.time(), error)
+        self.stats_for(dev_id).record(record)
+        self._save_health()
+        if self.logbook:
+            self.hass.bus.async_fire(EVENT_ACTION, {
+                "device": name, "nuki_id": dev_id, "action": action, "success": success,
+                "attempts": record.attempts, "seconds": seconds, "confirmed_by": confirmed_by, "error": error,
+            })
+        self.async_update_listeners()
+
+    async def _read_bridge_log(self, data: dict | None = None):
+        """Read the newest bridge log entries and report new Bluetooth and power problems."""
+        self._log_read = time.monotonic()
+        try:
+            entries = await self.api.bridge_log(LOG_READ_COUNT)
+        except NukiError as err:  # diagnostics never break the update
+            _LOGGER.debug("Reading the bridge log failed: %s", redact(err))
+            return
+        new = self.bridge_log.feed(entries, LOG_READ_COUNT, time.time())
+        if self.bridge_log.gap:
+            _LOGGER.debug("The bridge log ran over since the last read, some entries were not seen")
+        names = self._names_by_hex(data)
+        groups: dict = {}
+        for problem in new:
+            groups.setdefault((problem.device, problem.kind), []).append(problem)
+        texts = {
+            health.DROP: "%s: %s Bluetooth connection drop(s) in the bridge log (the bridge retries by itself)",
+            health.BLE_FAILURE: "%s: the bridge gave up on Bluetooth %s time(s) and restarts itself",
+            health.UART: "%s: %s data error(s) between the WiFi and Bluetooth chip of the bridge, often a weak power supply",
+            health.RESTART: "%s: started %s time(s)",
+        }
+        for (device, kind), items in groups.items():
+            name = names.get(device, device) if device else "Nuki Bridge"
+            _LOGGER.log(self.problem_level, texts[kind], name, len(items))
+            if self.logbook:
+                self.hass.bus.async_fire(EVENT_PROBLEM, {"device": name, "kind": kind, "count": len(items), "types": sorted({p.type for p in items})})
+        if new:
+            self._save_health()
+        self._update_repair(data)
+
+    def passive_checks(self, data: dict | None = None) -> list[Check]:
+        """What can be judged from what is already known, without asking the bridge."""
+        now = time.time()
+        data = data or self.data or {}
+        checks: list[Check] = []
+        if self.api.can_bridge():
+            checks.append(health.check_uart(self.bridge_problems(health.UART), self.watch_log))
+            checks.append(health.check_restarts(
+                self.bridge_problems(health.RESTART), self.bridge_problems(health.BLE_FAILURE), self.watch_log))
+            age = None if self.last_push is None else (dt_util.utcnow() - self.last_push).total_seconds()
+            checks.append(health.check_callback(bool(self.hass_url), self.callback_reachable, age))
+        for dev_id, item in (data.get("devices") or {}).items():
+            name = item.get("name", str(dev_id))
+            if self.api.can_bridge():
+                checks.append(health.check_rssi(name, (item.get("bridge_info") or {}).get("rssi")))
+                checks.append(health.check_drops(name, self.ble_drops(dev_id), self.watch_log))
+            checks.append(health.check_actions(name, self.stats_for(dev_id).day(now)))
+            state = item.get("lastKnownState") or {}
+            if (battery := health.check_battery(name, state.get("batteryCritical"), state.get("batteryChargeState"))):
+                checks.append(battery)
+        return checks
+
+    def health_status(self) -> str:
+        return health.worst(self.passive_checks())
+
+    def _update_repair(self, data: dict | None = None):
+        issue_id = f"bridge_unstable_{self.entry.entry_id}"
+        unstable = [c for c in self.passive_checks(data) if c.status == health.PROBLEM and c.id in ("ble_drops", "restarts", "uart")]
+        if self.repairs and unstable:
+            ir.async_create_issue(
+                self.hass, DOMAIN, issue_id, is_fixable=False, severity=ir.IssueSeverity.WARNING,
+                translation_key="bridge_unstable",
+                translation_placeholders={"problems": "; ".join(f"{c.title}: {c.detail}" for c in unstable)},
+            )
+        else:
+            ir.async_delete_issue(self.hass, DOMAIN, issue_id)
+
+    async def async_checkup(self, notify: bool = False) -> dict:
+        """Run every check, also those that ask the bridge, and report the result."""
+        checks: list[Check] = []
+        if self.api.can_bridge():
+            started, error, info = time.monotonic(), None, None
+            try:
+                info = await self.api.bridge_info(timeout=BRIDGE_TIMEOUT)
+            except NukiError as err:
+                error = redact(err)
+            checks.append(health.check_response(None if error else time.monotonic() - started, error))
+            if info:
+                current = dt_util.parse_datetime(str(info.get("currentTime") or ""))
+                checks.append(health.check_clock(None if current is None else (current - dt_util.utcnow()).total_seconds()))
+                checks.append(health.check_auth(self.api.active_auth))
+                if self.watch_log:
+                    await self._read_bridge_log()
+        if self.api.can_web():
+            try:
+                await self.api.web_list()
+                checks.append(Check("web", health.OK, "Nuki Web API", "Answers."))
+            except HomeAssistantError as err:
+                checks.append(Check("web", health.PROBLEM, "Nuki Web API", f"Fails: {redact(err)}", "Check the Web API token in the Nuki Web portal."))
+        checks.extend(self.passive_checks())
+        status = health.worst(checks)
+        self.last_checkup = {
+            "status": status,
+            "at": dt_util.utcnow().isoformat(),
+            "checks": [c.as_dict() for c in checks],
+        }
+        self._save_health()
+        _LOGGER.info("Check-up: %s", status)
+        for check in checks:
+            if check.status != health.OK:
+                _LOGGER.log(self.problem_level, "Check-up %s - %s: %s %s", check.status, check.title, check.detail, check.hint or "")
+        if notify:
+            persistent_notification.async_create(
+                self.hass, health.report_markdown(checks), title="Nuki check-up",
+                notification_id=f"{DOMAIN}_checkup_{self.entry.entry_id}",
+            )
+        self.async_update_listeners()
+        return self.last_checkup

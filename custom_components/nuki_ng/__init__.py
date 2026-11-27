@@ -148,6 +148,12 @@ DELETE_CALLBACK_SCHEMA = vol.Schema(
     }
 )
 BRIDGE_SCHEMA = vol.Schema(cv.TARGET_SERVICE_FIELDS)
+CHECKUP_SCHEMA = vol.Schema(
+    {
+        vol.Optional("notify", default=False): cv.boolean,
+        **cv.TARGET_SERVICE_FIELDS,
+    }
+)
 
 
 async def async_setup(hass: HomeAssistant, config) -> bool:
@@ -197,6 +203,23 @@ async def async_setup(hass: HomeAssistant, config) -> bool:
         if call.return_response:
             return dict(success=all(item["success"] for item in results), results=results)
         return None
+
+    async def _checkup(call: ServiceCall) -> ServiceResponse:
+        targeted = any(call.data.get(key) for key in ("device_id", "entity_id", "area_id"))
+        coordinators = _bridge_coordinators(hass, call) if targeted else _coordinators(hass)
+        if not coordinators:
+            raise ServiceValidationError("No Nuki integration is set up")
+        reports = []
+        for coordinator in coordinators:
+            report = await coordinator.async_checkup(notify=call.data["notify"])
+            reports.append({"entry": coordinator.entry.title, **report})
+        if call.return_response:
+            return {"status": max((r["status"] for r in reports), key=["ok", "warning", "problem"].index), "bridges": reports}
+        return None
+
+    hass.services.async_register(
+        DOMAIN, "checkup", _checkup, schema=CHECKUP_SCHEMA, supports_response=SupportsResponse.OPTIONAL
+    )
 
     # Bridge maintenance is restricted to administrators.
     async_register_admin_service(hass, DOMAIN, "bridge_reboot", _bridge_reboot, BRIDGE_SCHEMA)

@@ -52,6 +52,24 @@
         "data_description": {
           "action_retries": "Opening actions (open, unlatch, electric strike) are only repeated when the bridge certainly did not execute them, and never later than 35 s after the request.",
           "auth_mode": "Automatic uses the encrypted token (bridge firmware >= 2.14.0) and falls back to the deprecated hashed token. The plain token sends the secret unencrypted."
+        },
+        "sections": {
+          "diagnostics": {
+            "name": "Diagnostics",
+            "description": "Find out why commands are slow or fail. Every part can be switched off.",
+            "data": {
+              "watch_bridge_log": "Watch the bridge log",
+              "problem_log_level": "Log level for problems",
+              "logbook_entries": "Logbook entries",
+              "health_repairs": "Repair notice when the bridge is unstable"
+            },
+            "data_description": {
+              "watch_bridge_log": "Reads the newest bridge log entries every 10 minutes and counts Bluetooth drops, data errors and restarts. Adds the sensors Bluetooth Drops 24h and Data Errors 24h.",
+              "problem_log_level": "Level at which Bluetooth problems, retried commands and check-up findings are written to the Home Assistant log. Warning shows them in the log by default, Info and Debug only when that level is enabled for the integration.",
+              "logbook_entries": "Every command (with duration and attempts) and every Bluetooth problem appears in the logbook.",
+              "health_repairs": "Shows a repair notice while the bridge clearly has trouble: many Bluetooth drops, Bluetooth failures with restarts or data errors."
+            }
+          }
         }
       }
     },
@@ -67,6 +85,13 @@
         "hashed": "Hashed token (deprecated)",
         "plain": "Plain token (insecure)"
       }
+    },
+    "problem_log_level": {
+      "options": {
+        "warning": "Warning",
+        "info": "Info",
+        "debug": "Debug"
+      }
     }
   },
   "issues": {
@@ -77,6 +102,10 @@
     "callback_slots_full": {
       "title": "Nuki bridge has no free callback slot",
       "description": "All 3 callback slots of the Nuki bridge are used by other systems, so Home Assistant receives no push updates. Remove an unused callback (e.g. with the action nuki_ng.bridge_delete_callback)."
+    },
+    "bridge_unstable": {
+      "title": "Nuki bridge is unstable",
+      "description": "The bridge has trouble right now: {problems}.\n\nRun the check-up (button Check-up on the Nuki Bridge device) for details and hints. Common causes are a weak power supply, too much distance to the devices and weak batteries."
     }
   },
   "services": {
@@ -121,6 +150,16 @@
         "action": {
           "name": "Action",
           "description": "Lock action to execute"
+        }
+      }
+    },
+    "checkup": {
+      "name": "Check-up",
+      "description": "Checks the bridge and its devices (reachability, clock, token, push updates, signal, Bluetooth drops, data errors, restarts, commands, batteries) and returns a report.",
+      "fields": {
+        "notify": {
+          "name": "Notification",
+          "description": "Also show the report as a notification in Home Assistant."
         }
       }
     }

@@ -15,3 +15,17 @@ CONF_WEBHOOK_ID = "webhook_id"
 
 # Actions that open a door: never repeated when they may have been executed.
 OPEN_ACTIONS = frozenset({"open", "lock_n_go_open", "electric_strike_actuation"})
+
+# Diagnostics (options section "diagnostics"); every part can be switched off
+CONF_WATCH_LOG = "watch_bridge_log"  # read the bridge log for Bluetooth and power problems
+CONF_PROBLEM_LOG_LEVEL = "problem_log_level"  # level of problem messages in the Home Assistant log
+CONF_LOGBOOK = "logbook_entries"  # commands and Bluetooth problems in the logbook
+CONF_REPAIRS = "health_repairs"  # a repair issue while the bridge is clearly unstable
+DEFAULT_WATCH_LOG = True
+DEFAULT_PROBLEM_LOG_LEVEL = "warning"
+DEFAULT_LOGBOOK = True
+DEFAULT_REPAIRS = True
+PROBLEM_LOG_LEVELS = ["warning", "info", "debug"]
+
+EVENT_ACTION = "nuki_ng_action"
+EVENT_PROBLEM = "nuki_ng_bluetooth_problem"

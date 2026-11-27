@@ -11,6 +11,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     entities = []
     coordinator = entry.runtime_data
 
+    entities.append(NukiCheckupButton(coordinator))
     if coordinator.api.can_bridge():
         entities.append(NukiBridgeRestartButton(coordinator))
         entities.append(NukiBridgeFWUpdateButton(coordinator))
@@ -42,3 +43,17 @@ class NukiBridgeFWUpdateButton(NukiBridge, ButtonEntity):
 
     async def async_press(self) -> None:
         await self.coordinator.do_fwupdate()
+
+
+class NukiCheckupButton(NukiBridge, ButtonEntity):
+    """Runs every check and shows the result as a notification."""
+
+    def __init__(self, coordinator):
+        super().__init__(coordinator)
+        self.set_id("checkup")
+        self.set_name("Check-up")
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        self._attr_icon = "mdi:stethoscope"
+
+    async def async_press(self) -> None:
+        await self.coordinator.async_checkup(notify=True)

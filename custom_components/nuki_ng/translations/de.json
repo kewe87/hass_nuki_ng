@@ -52,6 +52,24 @@
         "data_description": {
           "action_retries": "Öffnende Aktionen (Öffnen, Falle ziehen, Türsummer) werden nur wiederholt, wenn die Bridge sie sicher nicht ausgeführt hat, und nie später als 35 s nach der Anfrage.",
           "auth_mode": "Automatisch nutzt das verschlüsselte Token (Bridge-Firmware ab 2.14.0) und weicht auf das veraltete Hash-Token aus. Das Klartext-Token überträgt das Geheimnis unverschlüsselt."
+        },
+        "sections": {
+          "diagnostics": {
+            "name": "Diagnose",
+            "description": "Herausfinden, warum Befehle langsam sind oder fehlschlagen. Jeder Teil lässt sich abschalten.",
+            "data": {
+              "watch_bridge_log": "Bridge-Log überwachen",
+              "problem_log_level": "Log-Stufe für Probleme",
+              "logbook_entries": "Logbuch-Einträge",
+              "health_repairs": "Reparaturhinweis bei instabiler Bridge"
+            },
+            "data_description": {
+              "watch_bridge_log": "Liest alle 10 Minuten die neuesten Einträge des Bridge-Logs und zählt Bluetooth-Abbrüche, Datenfehler und Neustarts. Ergänzt die Sensoren Bluetooth Drops 24h und Data Errors 24h.",
+              "problem_log_level": "Stufe, mit der Bluetooth-Probleme, wiederholte Befehle und Check-up-Befunde ins Home-Assistant-Log geschrieben werden. Warnung erscheint standardmäßig im Log, Info und Debug nur, wenn diese Stufe für die Integration eingeschaltet ist.",
+              "logbook_entries": "Jeder Befehl (mit Dauer und Versuchen) und jedes Bluetooth-Problem erscheint im Logbuch.",
+              "health_repairs": "Zeigt einen Reparaturhinweis, solange die Bridge deutlich Probleme hat: viele Bluetooth-Abbrüche, Bluetooth-Ausfälle mit Neustart oder Datenfehler."
+            }
+          }
         }
       }
     },
@@ -67,6 +85,13 @@
         "hashed": "Hash-Token (veraltet)",
         "plain": "Klartext-Token (unsicher)"
       }
+    },
+    "problem_log_level": {
+      "options": {
+        "warning": "Warnung",
+        "info": "Info",
+        "debug": "Debug"
+      }
     }
   },
   "issues": {
@@ -77,6 +102,10 @@
     "callback_slots_full": {
       "title": "Nuki Bridge hat keinen freien Callback-Platz",
       "description": "Alle 3 Callback-Plätze der Nuki Bridge sind von anderen Systemen belegt, Home Assistant bekommt daher keine Push-Updates. Bitte einen ungenutzten Callback entfernen (z. B. mit der Aktion nuki_ng.bridge_delete_callback)."
+    },
+    "bridge_unstable": {
+      "title": "Nuki Bridge ist instabil",
+      "description": "Die Bridge hat gerade Probleme: {problems}.\n\nDer Check-up (Taste Check-up am Gerät Nuki Bridge) zeigt Details und Hinweise. Häufige Ursachen sind ein schwaches Netzteil, zu viel Abstand zu den Geräten und schwache Batterien."
     }
   },
   "services": {
@@ -121,6 +150,16 @@
         "action": {
           "name": "Aktion",
           "description": "Auszuführende Schlossaktion"
+        }
+      }
+    },
+    "checkup": {
+      "name": "Check-up",
+      "description": "Prüft die Bridge und ihre Geräte (Erreichbarkeit, Uhrzeit, Token, Push-Updates, Signal, Bluetooth-Abbrüche, Datenfehler, Neustarts, Befehle, Batterien) und liefert einen Bericht.",
+      "fields": {
+        "notify": {
+          "name": "Benachrichtigung",
+          "description": "Den Bericht zusätzlich als Benachrichtigung in Home Assistant anzeigen."
         }
       }
     }
