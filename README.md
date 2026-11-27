@@ -116,6 +116,11 @@ Bridge only, Web API only (Smart Lock 3.0 Pro and newer) or both.
 - **Polling interval** – 30 s. States normally arrive by push.
 - **Retries** – 3, see *Reliable door actions*.
 - **Authentication** – automatic: encrypted token (firmware ≥ 2.14.0 / 1.22.1), else hashed. *Plain* sends the token unencrypted.
+- **Diagnostics** (collapsed section, each part can be switched off):
+  - *Watch the bridge log* – on. Counts Bluetooth drops, data errors and restarts.
+  - *Log level for problems* – Warning, Info or Debug.
+  - *Logbook entries* – on. Every command and every Bluetooth problem in the logbook.
+  - *Repair notice* – on. Shown while the bridge is clearly unstable.
 
 ## Actions
 
@@ -156,6 +161,10 @@ Result per device:
 - `verified` – false for the Web API (only accepted)
 - `error` – error text or null
 
+### `nuki_ng.checkup`
+
+Checks the bridge and all devices and returns a report (`status`: `ok`, `warning` or `problem`). With `notify: true` it also shows up as a notification – the same as the *Check-up* button. See [Diagnostics](#diagnostics).
+
 ### Bridge maintenance (admin only)
 
 `nuki_ng.bridge_reboot`, `nuki_ng.bridge_fwupdate`, `nuki_ng.bridge_delete_callback`
@@ -170,12 +179,14 @@ Names follow the devices in the Nuki app.
 - Door sensor: open, state, security state
 - Battery, battery critical, charging, keypad battery
 - State, RSSI, firmware
+- Bluetooth drops (24 h), duration of the last command
 - Continuous mode (Opener, **off by default**)
 
 **Bridge**
 - Connected, callback set, callback reachable
+- Health (`ok` / `warning` / `problem`), data errors (24 h)
 - Last restart, failed actions
-- Reboot and firmware update buttons
+- Check-up, reboot and firmware update buttons
 
 **Web API**
 - Activity log, last unlock user
@@ -196,6 +207,14 @@ tap_action:
   confirmation:
     text: Open the door?
 ```
+
+## Diagnostics
+
+Commands slow, doors not opening, bridge restarting? Press **Check-up** on the *Nuki Bridge* device. After a few seconds a notification lists what is fine and what is not, each with a hint.
+
+Checked: bridge reachable and how fast, clock, token, push updates, signal per device, Bluetooth drops, data errors (often the power supply), restarts, commands with retries, batteries.
+
+Problems also go to the Home Assistant log (level adjustable) and, if switched on, to the logbook. 📖 **[Troubleshooting guide](docs/troubleshooting.md)** – every check explained, typical causes, sensors for graphs and automations.
 
 ## Good to know
 

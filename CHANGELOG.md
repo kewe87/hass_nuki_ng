@@ -2,6 +2,16 @@
 
 # Changelog
 
+## 0.7.5 – unreleased
+
+- **Diagnostics** for everyone who wonders why a door is slow or does not open:
+  - *Check-up* button and `nuki_ng.checkup` action: checks bridge, clock, token, push updates, signal, Bluetooth drops, data errors, restarts, commands and batteries, with a hint for every finding.
+  - Reads the bridge log (small portions every 10 minutes) and counts Bluetooth drops, Bluetooth failures, data errors and restarts.
+  - New sensors: health of the bridge, data errors (24 h), Bluetooth drops (24 h) and duration of the last command per device.
+  - Commands and Bluetooth problems in the logbook, a repair notice while the bridge is unstable, problem messages at an adjustable log level.
+  - Everything can be switched off in the options (section *Diagnostics*). Failed actions are now kept across restarts.
+- [Troubleshooting guide](docs/troubleshooting.md).
+
 ## 0.7.4 – 2026-11-17
 
 - Shows the Nuki logo again (light and dark), as the original nuki_ng did, so the integration is easy to recognise.

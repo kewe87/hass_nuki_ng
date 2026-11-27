@@ -116,6 +116,11 @@ Nur Bridge, nur Web-API (Smart Lock 3.0 Pro und neuer) oder beides.
 - **Abfrageintervall** – 30 s. Zustände kommen normalerweise per Push.
 - **Wiederholungen** – 3, siehe *Zuverlässige Türaktionen*.
 - **Anmeldung** – automatisch: verschlüsseltes Token (Firmware ≥ 2.14.0 / 1.22.1), sonst Hash. *Klartext* sendet das Token unverschlüsselt.
+- **Diagnose** (eingeklappter Abschnitt, jeder Teil lässt sich abschalten):
+  - *Bridge-Log überwachen* – an. Zählt Bluetooth-Abbrüche, Datenfehler und Neustarts.
+  - *Log-Stufe für Probleme* – Warnung, Info oder Debug.
+  - *Logbuch-Einträge* – an. Jeder Befehl und jedes Bluetooth-Problem im Logbuch.
+  - *Reparaturhinweis* – an. Erscheint, solange die Bridge deutlich instabil ist.
 
 ## Aktionen
 
@@ -156,6 +161,10 @@ Ergebnis je Gerät:
 - `verified` – false bei der Web-API (nur angenommen)
 - `error` – Fehlertext oder null
 
+### `nuki_ng.checkup`
+
+Prüft die Bridge und alle Geräte und liefert einen Bericht (`status`: `ok`, `warning` oder `problem`). Mit `notify: true` erscheint er zusätzlich als Benachrichtigung – wie bei der Taste *Check-up*. Siehe [Diagnose](#diagnose).
+
 ### Bridge-Wartung (nur Admins)
 
 `nuki_ng.bridge_reboot`, `nuki_ng.bridge_fwupdate`, `nuki_ng.bridge_delete_callback`
@@ -170,12 +179,14 @@ Die Namen richten sich nach den Geräten in der Nuki-App.
 - Türsensor: offen, Zustand, Sicherheitszustand
 - Batterie, Batterie kritisch, lädt, Keypad-Batterie
 - Zustand, RSSI, Firmware
+- Bluetooth-Abbrüche (24 h), Dauer des letzten Befehls
 - Dauermodus (Opener, **standardmäßig aus**)
 
 **Bridge**
 - Verbunden, Callback gesetzt, Callback erreichbar
+- Gesundheit (`ok` / `warning` / `problem`), Datenfehler (24 h)
 - Letzter Neustart, fehlgeschlagene Aktionen
-- Tasten für Neustart und Firmware-Update
+- Tasten für Check-up, Neustart und Firmware-Update
 
 **Web-API**
 - Aktivitätsprotokoll, zuletzt aufgesperrt von
@@ -196,6 +207,14 @@ tap_action:
   confirmation:
     text: Tür öffnen?
 ```
+
+## Diagnose
+
+Befehle langsam, Tür geht nicht auf, Bridge startet neu? Am Gerät *Nuki Bridge* auf **Check-up** drücken. Nach ein paar Sekunden zeigt eine Benachrichtigung, was in Ordnung ist und was nicht, jeweils mit Hinweis.
+
+Geprüft werden: Bridge erreichbar und wie schnell, Uhrzeit, Token, Push-Updates, Signal je Gerät, Bluetooth-Abbrüche, Datenfehler (oft das Netzteil), Neustarts, Befehle mit Wiederholungen, Batterien.
+
+Probleme landen außerdem im Home-Assistant-Log (Stufe einstellbar) und, wenn eingeschaltet, im Logbuch. 📖 **[Handbuch Fehlersuche](docs/troubleshooting.de.md)** – jede Prüfung erklärt, typische Ursachen, Sensoren für Verläufe und Automationen.
 
 ## Gut zu wissen
 

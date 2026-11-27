@@ -2,6 +2,16 @@
 
 # Änderungsprotokoll
 
+## 0.7.5 – noch nicht veröffentlicht
+
+- **Diagnose** für alle, die wissen wollen, warum eine Tür langsam ist oder nicht aufgeht:
+  - Taste *Check-up* und Aktion `nuki_ng.checkup`: prüft Bridge, Uhrzeit, Token, Push-Updates, Signal, Bluetooth-Abbrüche, Datenfehler, Neustarts, Befehle und Batterien, mit Hinweis zu jedem Befund.
+  - Liest das Bridge-Log (alle 10 Minuten in kleinen Portionen) und zählt Bluetooth-Abbrüche, Bluetooth-Ausfälle, Datenfehler und Neustarts.
+  - Neue Sensoren: Gesundheit der Bridge, Datenfehler (24 h), Bluetooth-Abbrüche (24 h) und Dauer des letzten Befehls je Gerät.
+  - Befehle und Bluetooth-Probleme im Logbuch, Reparaturhinweis bei instabiler Bridge, Problem-Meldungen mit einstellbarer Log-Stufe.
+  - Alles lässt sich in den Optionen abschalten (Abschnitt *Diagnose*). Fehlgeschlagene Aktionen bleiben jetzt über Neustarts erhalten.
+- [Handbuch Fehlersuche](docs/troubleshooting.de.md).
+
 ## 0.7.4 – 17.11.2026
 
 - Zeigt wieder das Nuki-Logo (hell und dunkel) wie das ursprüngliche nuki_ng, damit man die Integration sofort erkennt.
