@@ -160,6 +160,10 @@
         "notify": {
           "name": "Benachrichtigung",
           "description": "Den Bericht zusätzlich als Benachrichtigung in Home Assistant anzeigen."
+        },
+        "device_id": {
+          "name": "Bridge",
+          "description": "Nur diese Bridge. Leer: alle Bridges."
         }
       }
     }

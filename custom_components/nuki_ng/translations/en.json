@@ -160,6 +160,10 @@
         "notify": {
           "name": "Notification",
           "description": "Also show the report as a notification in Home Assistant."
+        },
+        "device_id": {
+          "name": "Bridge",
+          "description": "Only this bridge. Empty: all bridges."
         }
       }
     }

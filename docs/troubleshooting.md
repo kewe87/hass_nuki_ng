@@ -43,7 +43,7 @@ The same as an action, e.g. in a script, with the report as response:
 
 `report.status` is `ok`, `warning` or `problem`. `report.bridges[].checks[]` holds `id`, `status`, `title`, `detail` and, where useful, `hint` for every check.
 
-Without a target the action checks every bridge that is set up, with `target: device_id: <bridge>` only that one.
+Without a target the action checks every bridge that is set up, with `device_id: <bridge>` only that one.
 
 ## What is checked
 

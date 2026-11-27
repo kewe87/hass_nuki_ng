@@ -49,10 +49,12 @@ execute_action:
             - deactivate_continuous_mode
 
 checkup:
-  target:
-    device:
-      integration: nuki_ng
   fields:
+    device_id:
+      required: false
+      selector:
+        device:
+          integration: nuki_ng
     notify:
       default: false
       selector:

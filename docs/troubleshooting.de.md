@@ -43,7 +43,7 @@ Dasselbe als Aktion, z. B. in einem Skript, mit dem Bericht als Antwort:
 
 `report.status` ist `ok`, `warning` oder `problem`. `report.bridges[].checks[]` enthält je Prüfung `id`, `status`, `title`, `detail` und bei Bedarf `hint`.
 
-Ohne Ziel prüft die Aktion alle eingerichteten Bridges, mit `target: device_id: <Bridge>` nur eine.
+Ohne Ziel prüft die Aktion alle eingerichteten Bridges, mit `device_id: <Bridge>` nur eine.
 
 ## Was geprüft wird
 
