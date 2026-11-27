@@ -2,7 +2,7 @@
 
 # Changelog
 
-## 0.7.5 – unreleased
+## 0.7.5 – 2026-11-28
 
 - **Diagnostics** for everyone who wonders why a door is slow or does not open:
   - *Check-up* button and `nuki_ng.checkup` action: checks bridge, clock, token, push updates, signal, Bluetooth drops, data errors, restarts, commands and batteries, with a hint for every finding.

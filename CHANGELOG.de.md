@@ -2,7 +2,7 @@
 
 # Änderungsprotokoll
 
-## 0.7.5 – noch nicht veröffentlicht
+## 0.7.5 – 28.11.2026
 
 - **Diagnose** für alle, die wissen wollen, warum eine Tür langsam ist oder nicht aufgeht:
   - Taste *Check-up* und Aktion `nuki_ng.checkup`: prüft Bridge, Uhrzeit, Token, Push-Updates, Signal, Bluetooth-Abbrüche, Datenfehler, Neustarts, Befehle und Batterien, mit Hinweis zu jedem Befund.
