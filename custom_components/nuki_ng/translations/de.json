@@ -167,5 +167,137 @@
         }
       }
     }
+  },
+  "entity": {
+    "binary_sensor": {
+      "battery_critical": {
+        "name": "Batterie kritisch"
+      },
+      "battery_charging": {
+        "name": "Batterie lädt"
+      },
+      "keypad_battery_critical": {
+        "name": "Keypad-Batterie kritisch"
+      },
+      "ring_action": {
+        "name": "Klingelaktion"
+      },
+      "locked": {
+        "name": "Verriegelt"
+      },
+      "door_open": {
+        "name": "Tür offen"
+      },
+      "connected": {
+        "name": "Verbunden"
+      },
+      "bridge_callback_set": {
+        "name": "Callback eingetragen"
+      },
+      "callback_reachable": {
+        "name": "Callback erreichbar"
+      }
+    },
+    "button": {
+      "reboot": {
+        "name": "Neustart"
+      },
+      "firmware_update": {
+        "name": "Firmware-Update"
+      },
+      "check_up": {
+        "name": "Check-up"
+      }
+    },
+    "event": {
+      "doorbell": {
+        "name": "Klingel"
+      }
+    },
+    "lock": {
+      "lock": {
+        "name": "Schloss"
+      }
+    },
+    "select": {
+      "ring_suppression": {
+        "name": "Klingelunterdrückung"
+      }
+    },
+    "sensor": {
+      "battery": {
+        "name": "Batterie"
+      },
+      "state": {
+        "name": "Zustand"
+      },
+      "rssi": {
+        "name": "Signalstärke"
+      },
+      "door_state": {
+        "name": "Türzustand"
+      },
+      "door_security_state": {
+        "name": "Türsicherheit"
+      },
+      "wifi_firmware_version": {
+        "name": "WLAN-Firmware-Version"
+      },
+      "firmware_version": {
+        "name": "Firmware-Version"
+      },
+      "last_log": {
+        "name": "Letzter Logeintrag"
+      },
+      "last_unlock_user": {
+        "name": "Zuletzt entsperrt von"
+      },
+      "last_restart": {
+        "name": "Letzter Neustart"
+      },
+      "failed_actions": {
+        "name": "Fehlgeschlagene Aktionen"
+      },
+      "health": {
+        "name": "Gesundheit",
+        "state": {
+          "ok": "OK",
+          "warning": "Warnung",
+          "problem": "Problem"
+        }
+      },
+      "data_errors_24h": {
+        "name": "Datenfehler 24 h"
+      },
+      "bluetooth_drops_24h": {
+        "name": "Bluetooth-Abbrüche 24 h"
+      },
+      "last_action_duration": {
+        "name": "Dauer letzter Befehl"
+      }
+    },
+    "switch": {
+      "auto_lock": {
+        "name": "Automatisch verriegeln"
+      },
+      "button_enabled": {
+        "name": "Taste aktiv"
+      },
+      "ring_suppression": {
+        "name": "Klingelunterdrückung"
+      },
+      "ring_suppression_ring_to_open": {
+        "name": "Klingelunterdrückung (Ring to Open)"
+      },
+      "ring_suppression_continuous_mode": {
+        "name": "Klingelunterdrückung (Dauermodus)"
+      },
+      "continuous_mode": {
+        "name": "Dauermodus"
+      },
+      "auth_entry": {
+        "name": "Berechtigung: {name}"
+      }
+    }
   }
 }

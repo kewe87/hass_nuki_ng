@@ -167,5 +167,137 @@
         }
       }
     }
+  },
+  "entity": {
+    "binary_sensor": {
+      "battery_critical": {
+        "name": "Battery Critical"
+      },
+      "battery_charging": {
+        "name": "Battery Charging"
+      },
+      "keypad_battery_critical": {
+        "name": "Keypad Battery Critical"
+      },
+      "ring_action": {
+        "name": "Ring Action"
+      },
+      "locked": {
+        "name": "Locked"
+      },
+      "door_open": {
+        "name": "Door Open"
+      },
+      "connected": {
+        "name": "Connected"
+      },
+      "bridge_callback_set": {
+        "name": "Callback Set"
+      },
+      "callback_reachable": {
+        "name": "Callback Reachable"
+      }
+    },
+    "button": {
+      "reboot": {
+        "name": "Reboot"
+      },
+      "firmware_update": {
+        "name": "Firmware Update"
+      },
+      "check_up": {
+        "name": "Check-up"
+      }
+    },
+    "event": {
+      "doorbell": {
+        "name": "Doorbell"
+      }
+    },
+    "lock": {
+      "lock": {
+        "name": "Lock"
+      }
+    },
+    "select": {
+      "ring_suppression": {
+        "name": "Ring suppression"
+      }
+    },
+    "sensor": {
+      "battery": {
+        "name": "Battery"
+      },
+      "state": {
+        "name": "State"
+      },
+      "rssi": {
+        "name": "Signal strength"
+      },
+      "door_state": {
+        "name": "Door State"
+      },
+      "door_security_state": {
+        "name": "Door Security State"
+      },
+      "wifi_firmware_version": {
+        "name": "WiFi Firmware Version"
+      },
+      "firmware_version": {
+        "name": "Firmware Version"
+      },
+      "last_log": {
+        "name": "Last Log"
+      },
+      "last_unlock_user": {
+        "name": "Last Unlock User"
+      },
+      "last_restart": {
+        "name": "Last Restart"
+      },
+      "failed_actions": {
+        "name": "Failed Actions"
+      },
+      "health": {
+        "name": "Health",
+        "state": {
+          "ok": "OK",
+          "warning": "Warning",
+          "problem": "Problem"
+        }
+      },
+      "data_errors_24h": {
+        "name": "Data Errors 24h"
+      },
+      "bluetooth_drops_24h": {
+        "name": "Bluetooth Drops 24h"
+      },
+      "last_action_duration": {
+        "name": "Last Action Duration"
+      }
+    },
+    "switch": {
+      "auto_lock": {
+        "name": "Auto Lock"
+      },
+      "button_enabled": {
+        "name": "Button Enabled"
+      },
+      "ring_suppression": {
+        "name": "Ring suppression"
+      },
+      "ring_suppression_ring_to_open": {
+        "name": "Ring suppression (Ring to Open)"
+      },
+      "ring_suppression_continuous_mode": {
+        "name": "Ring suppression (Continuous Mode)"
+      },
+      "continuous_mode": {
+        "name": "Continuous Mode"
+      },
+      "auth_entry": {
+        "name": "Authorization: {name}"
+      }
+    }
   }
 }

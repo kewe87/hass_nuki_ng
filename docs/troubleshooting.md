@@ -16,12 +16,12 @@ The door opens only after a few seconds, a command does not go through, or the b
 
 **Settings → Devices & services → Nuki Lock → device *Nuki Bridge* → press *Check-up*.**
 
-After a few seconds a notification appears, problems first:
+A notification "Checking …" appears right away. After a few seconds it is replaced by the report, problems first, in the language of Home Assistant (German or English):
 
 ```
 ⚠️ Nuki check-up: warning
-- ⚠️ Front door: Bluetooth drops: 6 in the last 24 h, the bridge retried.
-  → Occasional drops are normal at a weak signal. If commands get slow, move the bridge closer.
+- ⚠️ Front door: Bluetooth drops: 8 in the last 24 h.
+  → More drops than usual. If commands get slow, move the bridge closer or replace the batteries.
 - ✅ Bridge: reachable: Answers in 0.41 s.
 - ✅ Opener: signal: -43 dBm, good.
 …
@@ -53,13 +53,15 @@ Without a target the action checks every bridge that is set up, with `device_id:
 | **Clock** | less than 30 s off | more than 30 s | – |
 | **Token** | encrypted | hashed or plain | – |
 | **Push updates** | callback set and reachable | no callback, or the bridge cannot reach Home Assistant | – |
-| **Signal** (per device) | above −70 dBm | −70 to −85 dBm | below −85 dBm |
-| **Bluetooth drops** (per device, 24 h) | none | 1–9 | 10 or more |
+| **Signal** (per device) | above −80 dBm | −80 to −90 dBm | below −90 dBm |
+| **Bluetooth drops** (per device, 24 h) | up to 5 | 6–19 | 20 or more |
 | **Data errors** (bridge, 24 h) | 0–2 | 3 or more | – |
 | **Restarts** (bridge, 24 h) | none | restart | restart after a Bluetooth failure |
-| **Commands** (per device, 24 h) | all on the first attempt | with retries | failed |
+| **Commands** (per device, 24 h) | at most 2 needed a retry | 3 or more needed a retry | failed |
 | **Battery** | – | – | critical |
 | **Web API** (if set up) | answers | – | fails |
+
+The limits are set so that only what you notice is reported. A few drops a day that the bridge retries by itself are normal and stay *good*.
 
 The bridge *Health* sensor always shows the worst finding of what is already known. The check-up also asks the bridge itself (response time, clock, fresh log) and the Web API.
 

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 import logging
 import secrets
 
@@ -59,9 +61,44 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         if not others:
             hass.config_entries.async_update_entry(entry, unique_id=str(hardware_id))
 
+    _remove_legacy_devices(hass, entry, coordinator)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
     return True
+
+
+def _current_ids(coordinator) -> set[str]:
+    """Device ids this entry provides right now: the devices and the bridge."""
+    ids = {str(dev_id) for dev_id in ((coordinator.data or {}).get("devices") or {})}
+    if (bridge_id := coordinator.info_data().get("ids", {}).get("hardwareId")) is not None:
+        ids.add(str(bridge_id))
+    return ids
+
+
+def _remove_legacy_devices(hass: HomeAssistant, entry: ConfigEntry, coordinator):
+    """Remove devices left over from older versions (identifier ("id", <nukiId>)).
+
+    They show up as a second, empty device next to the real one. Only removed
+    when the real device of the same Nuki id exists.
+    """
+    current = _current_ids(coordinator)
+    dev_reg = dr.async_get(hass)
+    for device in dr.async_entries_for_config_entry(dev_reg, entry.entry_id):
+        if any(ident[0] == DOMAIN for ident in device.identifiers):
+            continue
+        legacy = {str(ident[1]) for ident in device.identifiers if ident[0] == "id"}
+        if legacy and legacy <= current:
+            _LOGGER.info("Removing the leftover device %s of an older version", device.name)
+            dev_reg.async_update_device(device.id, remove_config_entry_id=entry.entry_id)
+
+
+async def async_remove_config_entry_device(hass: HomeAssistant, entry: ConfigEntry, device) -> bool:
+    """Allow deleting a device in the UI once the bridge no longer reports it."""
+    coordinator = getattr(entry, "runtime_data", None)
+    if coordinator is None:
+        return True
+    ids = {str(ident[1]) for ident in device.identifiers if ident[0] in (DOMAIN, "id")}
+    return not ids & _current_ids(coordinator) or not any(ident[0] == DOMAIN for ident in device.identifiers)
 
 
 async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry):
@@ -242,8 +279,19 @@ async def async_setup(hass: HomeAssistant, config) -> bool:
 #  Nuki Base Entities
 # ------------------------------------------------------
 
+def translation_key(name: str) -> str:
+    """Translation key of an entity name: "Data Errors 24h" -> "data_errors_24h"."""
+    return re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
+
+
 class NukiEntity(CoordinatorEntity):
-    """Base entity for Nuki locks and openers."""
+    """Base entity for Nuki locks and openers.
+
+    The entity name is translated (strings.json, entity section) and shown
+    after the device name, so it follows the language of Home Assistant.
+    """
+
+    _attr_has_entity_name = True
 
     def __init__(self, coordinator, device_id: str):
         super().__init__(coordinator)
@@ -256,19 +304,11 @@ class NukiEntity(CoordinatorEntity):
         self.id_suffix = suffix
 
     def set_name(self, name: str):
-        self._attr_name_suffix = name
-
-    @property
-    def name_suffix(self):
-        return self._attr_name_suffix
+        self._attr_translation_key = translation_key(name)
 
     @property
     def get_name(self):
         return "Nuki %s" % (self.data.get("name", self.device_id))
-
-    @property
-    def name(self) -> str:
-        return "%s %s" % (self.get_name, self.name_suffix)
 
     @property
     def unique_id(self) -> str:
@@ -316,15 +356,13 @@ class NukiEntity(CoordinatorEntity):
 class NukiBridge(CoordinatorEntity):
     """Represents the Nuki Bridge device."""
 
+    _attr_has_entity_name = True
+
     def set_id(self, suffix: str):
         self.id_suffix = suffix
 
     def set_name(self, name: str):
-        self.name_suffix = name
-
-    @property
-    def name(self) -> str:
-        return "Nuki Bridge %s" % (self.name_suffix)
+        self._attr_translation_key = translation_key(name)
 
     @property
     def unique_id(self) -> str:

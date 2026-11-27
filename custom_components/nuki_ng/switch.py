@@ -40,11 +40,11 @@ class AuthEntry(NukiEntity, SwitchEntity):
         super().__init__(coordinator, device_id)
         self.auth_id = auth_id
         self.set_id("switch", f"{auth_id}_auth_entry")
+        self._attr_translation_key = "auth_entry"
 
     @property
-    def name_suffix(self):
-        name = self.auth_data.get("name", "undefined")
-        return f"authorization: {name}"
+    def translation_placeholders(self):
+        return {"name": self.auth_data.get("name", "undefined")}
 
     @property
     def auth_data(self):

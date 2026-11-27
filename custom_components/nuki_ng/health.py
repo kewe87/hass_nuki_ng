@@ -30,10 +30,13 @@ PROBLEM = "problem"
 _RANK = {OK: 0, WARNING: 1, PROBLEM: 2}
 
 # Thresholds of the check-up
-RSSI_WEAK = -70  # dBm, at or below: weak
-RSSI_BAD = -85
-DROPS_WARN = 1  # per 24 h
-DROPS_BAD = 10
+# Set so that only what users notice is reported: a few drops a day that the
+# bridge retries by itself are normal and stay "ok".
+RSSI_WEAK = -80  # dBm, at or below: weak
+RSSI_BAD = -90
+DROPS_WARN = 6  # per 24 h
+DROPS_BAD = 20
+RETRIES_WARN = 3  # commands that needed a retry, per 24 h
 UART_WARN = 3
 RESTARTS_WARN = 1
 CLOCK_WARN_SEC = 30
@@ -231,100 +234,277 @@ def worst(checks: list[Check]) -> str:
     return max((c.status for c in checks), key=_RANK.get, default=OK)
 
 
-def check_rssi(name: str, rssi: int | None) -> Check:
+TEXTS: dict[str, dict[str, str]] = {
+    "en": {
+        "t_signal": "{name}: signal",
+        "t_drops": "{name}: Bluetooth drops",
+        "t_actions": "{name}: commands",
+        "t_battery": "{name}: battery",
+        "t_uart": "Bridge: data errors",
+        "t_restarts": "Bridge: restarts",
+        "t_clock": "Bridge: clock",
+        "t_bridge": "Bridge: reachable",
+        "t_auth": "Bridge: token",
+        "t_callback": "Push updates",
+        "t_web": "Nuki Web API",
+        "not_watched": "Not watched (bridge log reading is off).",
+        "rssi_none": "The bridge reports no signal strength.",
+        "rssi_none_h": "The device may be out of reach of the bridge.",
+        "rssi_bad": "{rssi} dBm, very weak.",
+        "rssi_bad_h": "Move the bridge closer to the device (ideally within 1-3 m, no metal in between).",
+        "rssi_weak": "{rssi} dBm, weak.",
+        "rssi_weak_h": "Connection drops are likely. A place closer to the device helps.",
+        "rssi_ok": "{rssi} dBm, good.",
+        "drops_bad": "{n} in the last 24 h.",
+        "drops_bad_h": "Frequent drops: check the distance to the bridge, its power supply and the device batteries.",
+        "drops_warn": "{n} in the last 24 h.",
+        "drops_warn_h": "More drops than usual. If commands get slow, move the bridge closer or replace the batteries.",
+        "drops_few": "{n} in the last 24 h, the bridge retried by itself. That is normal.",
+        "drops_none": "None in the last 24 h.",
+        "actions_none": "No commands in the last 24 h.",
+        "actions": "{actions} in the last 24 h, {retried} needed a retry, {failed} failed.",
+        "actions_failed_h": "See the Home Assistant log and the logbook for the reason.",
+        "actions_retried_h": "Retries hide Bluetooth problems: look at the signal and the drops.",
+        "uart_warn": "{n} data errors in the last 24 h.",
+        "uart_warn_h": "Often a weak or failing power supply of the bridge. Try another USB power supply (at least 1.5 A) and cable.",
+        "uart_ok": "{n} in the last 24 h.",
+        "restarts_bad": "Gave up on Bluetooth {n} time(s) in the last 24 h and restarted.",
+        "restarts_bad_h": "Commands fail during the restart. Check the power supply and the distance to the devices.",
+        "restarts_warn": "{n} restart(s) in the last 24 h.",
+        "restarts_warn_h": "Fine after a firmware update or a power cut, otherwise check the power supply.",
+        "restarts_none": "None in the last 24 h.",
+        "clock_unknown": "Not known.",
+        "clock_warn": "Differs by {sec:.0f} s from Home Assistant.",
+        "clock_warn_h": "The encrypted token depends on the time. Check the time of Home Assistant and the internet access of the bridge.",
+        "clock_ok": "In sync ({sec:.0f} s).",
+        "bridge_err": "No answer: {error}",
+        "bridge_err_h": "Check that the bridge is powered, in the WiFi and has the HTTP API enabled.",
+        "bridge_slow": "Answers slowly ({sec:.1f} s).",
+        "bridge_slow_h": "A busy bridge or a weak WiFi. The bridge handles only one request at a time.",
+        "bridge_ok": "Answers in {sec:.2f} s.",
+        "bridge_ok_plain": "Answers.",
+        "auth_encrypted": "Encrypted token.",
+        "auth_plain": "Plain token, the secret travels unencrypted.",
+        "auth_plain_h": "Update the bridge firmware (encrypted token needs 2.14.0 / 1.22.1) and check the clock.",
+        "auth_old": "{mode} token (deprecated by Nuki).",
+        "auth_old_h": "Update the bridge firmware so the encrypted token can be used.",
+        "cb_none": "No callback, states come by polling only.",
+        "cb_none_h": "Set the Home Assistant URL in the options.",
+        "cb_unreachable": "The bridge cannot reach Home Assistant, states come by polling only.",
+        "cb_unreachable_h": "Use an HTTP URL of Home Assistant in the local network (the bridge does not support HTTPS).",
+        "cb_waiting": "Registered, no push received since the start yet.",
+        "cb_ok": "Registered, last push {min:.0f} min ago.",
+        "battery_critical": "Critical{percent}.",
+        "battery_critical_h": "Replace the batteries soon: weak batteries also cause Bluetooth drops.",
+        "battery_ok": "{percent} %.",
+        "web_ok": "Answers.",
+        "web_err": "Fails: {error}",
+        "web_err_h": "Check the Web API token in the Nuki Web portal.",
+        "report": "Nuki check-up",
+        "s_ok": "everything fine",
+        "s_warning": "warning",
+        "s_problem": "problem",
+        "running": "Checking the bridge and the devices, this takes a few seconds …",
+    },
+    "de": {
+        "t_signal": "{name}: Signal",
+        "t_drops": "{name}: Bluetooth-Abbrüche",
+        "t_actions": "{name}: Befehle",
+        "t_battery": "{name}: Batterie",
+        "t_uart": "Bridge: Datenfehler",
+        "t_restarts": "Bridge: Neustarts",
+        "t_clock": "Bridge: Uhrzeit",
+        "t_bridge": "Bridge: erreichbar",
+        "t_auth": "Bridge: Token",
+        "t_callback": "Push-Updates",
+        "t_web": "Nuki Web API",
+        "not_watched": "Nicht überwacht (Bridge-Log lesen ist aus).",
+        "rssi_none": "Die Bridge meldet keine Signalstärke.",
+        "rssi_none_h": "Das Gerät ist vielleicht außer Reichweite der Bridge.",
+        "rssi_bad": "{rssi} dBm, sehr schwach.",
+        "rssi_bad_h": "Die Bridge näher ans Gerät stellen (ideal 1–3 m, kein Metall dazwischen).",
+        "rssi_weak": "{rssi} dBm, schwach.",
+        "rssi_weak_h": "Verbindungsabbrüche sind wahrscheinlich. Ein Platz näher am Gerät hilft.",
+        "rssi_ok": "{rssi} dBm, gut.",
+        "drops_bad": "{n} in den letzten 24 h.",
+        "drops_bad_h": "Häufige Abbrüche: Abstand zur Bridge, ihr Netzteil und die Batterien des Geräts prüfen.",
+        "drops_warn": "{n} in den letzten 24 h.",
+        "drops_warn_h": "Mehr Abbrüche als üblich. Werden Befehle langsam, die Bridge näher stellen oder die Batterien tauschen.",
+        "drops_few": "{n} in den letzten 24 h, die Bridge hat selbst wiederholt. Das ist normal.",
+        "drops_none": "Keine in den letzten 24 h.",
+        "actions_none": "Keine Befehle in den letzten 24 h.",
+        "actions": "{actions} in den letzten 24 h, {retried} mit Wiederholung, {failed} fehlgeschlagen.",
+        "actions_failed_h": "Den Grund zeigen das Home-Assistant-Log und das Logbuch.",
+        "actions_retried_h": "Wiederholungen verdecken Bluetooth-Probleme: Signal und Abbrüche ansehen.",
+        "uart_warn": "{n} Datenfehler in den letzten 24 h.",
+        "uart_warn_h": "Meist ein schwaches oder defektes Netzteil der Bridge. Ein anderes USB-Netzteil (mind. 1,5 A) und Kabel probieren.",
+        "uart_ok": "{n} in den letzten 24 h.",
+        "restarts_bad": "Hat Bluetooth in den letzten 24 h {n}-mal aufgegeben und neu gestartet.",
+        "restarts_bad_h": "Während des Neustarts gehen keine Befehle. Netzteil und Abstand zu den Geräten prüfen.",
+        "restarts_warn": "{n} Neustart(s) in den letzten 24 h.",
+        "restarts_warn_h": "Nach einem Firmware-Update oder Stromausfall normal, sonst das Netzteil prüfen.",
+        "restarts_none": "Keine in den letzten 24 h.",
+        "clock_unknown": "Nicht bekannt.",
+        "clock_warn": "Weicht {sec:.0f} s von Home Assistant ab.",
+        "clock_warn_h": "Das verschlüsselte Token hängt an der Uhrzeit. Zeit von Home Assistant und Internetzugang der Bridge prüfen.",
+        "clock_ok": "Stimmt ({sec:.0f} s).",
+        "bridge_err": "Keine Antwort: {error}",
+        "bridge_err_h": "Prüfen, ob die Bridge Strom hat, im WLAN ist und die HTTP-API aktiv ist.",
+        "bridge_slow": "Antwortet langsam ({sec:.1f} s).",
+        "bridge_slow_h": "Bridge ausgelastet oder schwaches WLAN. Die Bridge bearbeitet nur eine Anfrage gleichzeitig.",
+        "bridge_ok": "Antwortet in {sec:.2f} s.",
+        "bridge_ok_plain": "Antwortet.",
+        "auth_encrypted": "Verschlüsseltes Token.",
+        "auth_plain": "Klartext-Token, das Geheimnis geht unverschlüsselt übers Netz.",
+        "auth_plain_h": "Bridge-Firmware aktualisieren (verschlüsseltes Token ab 2.14.0 / 1.22.1) und Uhrzeit prüfen.",
+        "auth_old": "{mode}-Token (von Nuki abgekündigt).",
+        "auth_old_h": "Bridge-Firmware aktualisieren, damit das verschlüsselte Token geht.",
+        "cb_none": "Kein Callback, Zustände kommen nur per Abfrage.",
+        "cb_none_h": "Die Home-Assistant-URL in den Optionen eintragen.",
+        "cb_unreachable": "Die Bridge erreicht Home Assistant nicht, Zustände kommen nur per Abfrage.",
+        "cb_unreachable_h": "Eine HTTP-URL von Home Assistant im lokalen Netz verwenden (die Bridge kann kein HTTPS).",
+        "cb_waiting": "Eingetragen, seit dem Start noch kein Push empfangen.",
+        "cb_ok": "Eingetragen, letzter Push vor {min:.0f} min.",
+        "battery_critical": "Kritisch{percent}.",
+        "battery_critical_h": "Batterien bald tauschen: schwache Batterien verursachen auch Bluetooth-Abbrüche.",
+        "battery_ok": "{percent} %.",
+        "web_ok": "Antwortet.",
+        "web_err": "Fehler: {error}",
+        "web_err_h": "Das Web-API-Token im Nuki-Web-Portal prüfen.",
+        "report": "Nuki Check-up",
+        "s_ok": "alles in Ordnung",
+        "s_warning": "Warnung",
+        "s_problem": "Problem",
+        "running": "Bridge und Geräte werden geprüft, das dauert ein paar Sekunden …",
+    },
+}
+
+
+def language(code: str | None) -> str:
+    """Pick the text language from the Home Assistant language ("de-CH" -> "de")."""
+    base = (code or "en").split("-")[0].lower()
+    return base if base in TEXTS else "en"
+
+
+def text(lang: str, key: str, **values: Any) -> str:
+    return TEXTS.get(lang, TEXTS["en"]).get(key, TEXTS["en"][key]).format(**values)
+
+
+def _check(lang, check_id, status, title, detail, hint=None, device=None, **values) -> Check:
+    return Check(
+        check_id, status, text(lang, title, **values), text(lang, detail, **values),
+        text(lang, hint, **values) if hint else None, device,
+    )
+
+
+def check_rssi(name: str, rssi: int | None, lang: str = "en") -> Check:
+    args = dict(name=name, rssi=rssi, device=name)
     if rssi is None:
-        return Check("rssi", WARNING, f"{name}: signal", "The bridge reports no signal strength.", "The device may be out of reach of the bridge.", name)
+        return _check(lang, "rssi", WARNING, "t_signal", "rssi_none", "rssi_none_h", **args)
     if rssi <= RSSI_BAD:
-        return Check("rssi", PROBLEM, f"{name}: signal", f"{rssi} dBm, very weak.", "Move the bridge closer to the device (ideally within 1-3 m, no metal in between).", name)
+        return _check(lang, "rssi", PROBLEM, "t_signal", "rssi_bad", "rssi_bad_h", **args)
     if rssi <= RSSI_WEAK:
-        return Check("rssi", WARNING, f"{name}: signal", f"{rssi} dBm, weak.", "Connection drops are likely. A place closer to the device helps.", name)
-    return Check("rssi", OK, f"{name}: signal", f"{rssi} dBm, good.", None, name)
+        return _check(lang, "rssi", WARNING, "t_signal", "rssi_weak", "rssi_weak_h", **args)
+    return _check(lang, "rssi", OK, "t_signal", "rssi_ok", **args)
 
 
-def check_drops(name: str, drops: int, watching: bool) -> Check:
+def check_drops(name: str, drops: int, watching: bool, lang: str = "en") -> Check:
+    args = dict(name=name, n=drops, device=name)
     if not watching:
-        return Check("ble_drops", OK, f"{name}: Bluetooth drops", "Not watched (bridge log reading is off).", None, name)
+        return _check(lang, "ble_drops", OK, "t_drops", "not_watched", **args)
     if drops >= DROPS_BAD:
-        return Check("ble_drops", PROBLEM, f"{name}: Bluetooth drops", f"{drops} in the last 24 h.", "Frequent drops: check the distance to the bridge, its power supply and the device batteries.", name)
+        return _check(lang, "ble_drops", PROBLEM, "t_drops", "drops_bad", "drops_bad_h", **args)
     if drops >= DROPS_WARN:
-        return Check("ble_drops", WARNING, f"{name}: Bluetooth drops", f"{drops} in the last 24 h, the bridge retried.", "Occasional drops are normal at a weak signal. If commands get slow, move the bridge closer.", name)
-    return Check("ble_drops", OK, f"{name}: Bluetooth drops", "None in the last 24 h.", None, name)
+        return _check(lang, "ble_drops", WARNING, "t_drops", "drops_warn", "drops_warn_h", **args)
+    if drops:
+        return _check(lang, "ble_drops", OK, "t_drops", "drops_few", **args)
+    return _check(lang, "ble_drops", OK, "t_drops", "drops_none", **args)
 
 
-def check_actions(name: str, day: dict[str, int]) -> Check:
+def check_actions(name: str, day: dict[str, int], lang: str = "en") -> Check:
+    args = dict(name=name, device=name, **day)
     if not day["actions"]:
-        return Check("actions", OK, f"{name}: commands", "No commands in the last 24 h.", None, name)
-    text = f"{day['actions']} in the last 24 h, {day['retried']} needed a retry, {day['failed']} failed."
+        return _check(lang, "actions", OK, "t_actions", "actions_none", **args)
     if day["failed"]:
-        return Check("actions", PROBLEM, f"{name}: commands", text, "See the Home Assistant log and the logbook for the reason.", name)
-    if day["retried"]:
-        return Check("actions", WARNING, f"{name}: commands", text, "Retries hide Bluetooth problems: look at the signal and the drops.", name)
-    return Check("actions", OK, f"{name}: commands", text, None, name)
+        return _check(lang, "actions", PROBLEM, "t_actions", "actions", "actions_failed_h", **args)
+    if day["retried"] >= RETRIES_WARN:
+        return _check(lang, "actions", WARNING, "t_actions", "actions", "actions_retried_h", **args)
+    return _check(lang, "actions", OK, "t_actions", "actions", **args)
 
 
-def check_uart(count: int, watching: bool) -> Check:
+def check_uart(count: int, watching: bool, lang: str = "en") -> Check:
     if not watching:
-        return Check("uart", OK, "Bridge: data errors", "Not watched (bridge log reading is off).")
+        return _check(lang, "uart", OK, "t_uart", "not_watched")
     if count >= UART_WARN:
-        return Check("uart", WARNING, "Bridge: data errors", f"{count} UART errors in the last 24 h.", "Often a weak or failing power supply of the bridge. Try another USB power supply (at least 1.5 A) and cable.")
-    return Check("uart", OK, "Bridge: data errors", f"{count} in the last 24 h.")
+        return _check(lang, "uart", WARNING, "t_uart", "uart_warn", "uart_warn_h", n=count)
+    return _check(lang, "uart", OK, "t_uart", "uart_ok", n=count)
 
 
-def check_restarts(restarts: int, failures: int, watching: bool) -> Check:
+def check_restarts(restarts: int, failures: int, watching: bool, lang: str = "en") -> Check:
     if not watching:
-        return Check("restarts", OK, "Bridge: restarts", "Not watched (bridge log reading is off).")
+        return _check(lang, "restarts", OK, "t_restarts", "not_watched")
     if failures:
-        return Check("restarts", PROBLEM, "Bridge: restarts", f"Gave up on Bluetooth {failures} time(s) in the last 24 h and restarted.", "Commands fail during the restart. Check the power supply and the distance to the devices.")
+        return _check(lang, "restarts", PROBLEM, "t_restarts", "restarts_bad", "restarts_bad_h", n=failures)
     if restarts >= RESTARTS_WARN:
-        return Check("restarts", WARNING, "Bridge: restarts", f"{restarts} restart(s) in the last 24 h.", "Fine after a firmware update or a power cut, otherwise check the power supply.")
-    return Check("restarts", OK, "Bridge: restarts", "None in the last 24 h.")
+        return _check(lang, "restarts", WARNING, "t_restarts", "restarts_warn", "restarts_warn_h", n=restarts)
+    return _check(lang, "restarts", OK, "t_restarts", "restarts_none")
 
 
-def check_clock(skew: float | None) -> Check:
+def check_clock(skew: float | None, lang: str = "en") -> Check:
     if skew is None:
-        return Check("clock", OK, "Bridge: clock", "Not known.")
+        return _check(lang, "clock", OK, "t_clock", "clock_unknown")
     if abs(skew) > CLOCK_WARN_SEC:
-        return Check("clock", WARNING, "Bridge: clock", f"Differs by {abs(skew):.0f} s from Home Assistant.", "The encrypted token depends on the time. Check the time of Home Assistant and the internet access of the bridge.")
-    return Check("clock", OK, "Bridge: clock", f"In sync ({abs(skew):.0f} s).")
+        return _check(lang, "clock", WARNING, "t_clock", "clock_warn", "clock_warn_h", sec=abs(skew))
+    return _check(lang, "clock", OK, "t_clock", "clock_ok", sec=abs(skew))
 
 
-def check_response(seconds: float | None, error: str | None) -> Check:
+def check_response(seconds: float | None, error: str | None, lang: str = "en") -> Check:
     if error:
-        return Check("bridge", PROBLEM, "Bridge: reachable", f"No answer: {error}", "Check that the bridge is powered, in the WiFi and has HTTP API enabled.")
+        return _check(lang, "bridge", PROBLEM, "t_bridge", "bridge_err", "bridge_err_h", error=error)
     if seconds is not None and seconds > RESPONSE_WARN_SEC:
-        return Check("bridge", WARNING, "Bridge: reachable", f"Answers slowly ({seconds:.1f} s).", "A busy bridge or a weak WiFi. The bridge handles only one request at a time.")
-    return Check("bridge", OK, "Bridge: reachable", f"Answers in {seconds:.2f} s." if seconds is not None else "Answers.")
+        return _check(lang, "bridge", WARNING, "t_bridge", "bridge_slow", "bridge_slow_h", sec=seconds)
+    if seconds is None:
+        return _check(lang, "bridge", OK, "t_bridge", "bridge_ok_plain")
+    return _check(lang, "bridge", OK, "t_bridge", "bridge_ok", sec=seconds)
 
 
-def check_auth(mode: str | None) -> Check:
+def check_auth(mode: str | None, lang: str = "en") -> Check:
     if mode == "encrypted":
-        return Check("auth", OK, "Bridge: token", "Encrypted token.")
+        return _check(lang, "auth", OK, "t_auth", "auth_encrypted")
     if mode == "plain":
-        return Check("auth", WARNING, "Bridge: token", "Plain token, the secret travels unencrypted.", "Update the bridge firmware (encrypted token needs 2.14.0 / 1.22.1) and check the clock.")
-    return Check("auth", WARNING, "Bridge: token", f"{mode or 'unknown'} token (deprecated by Nuki).", "Update the bridge firmware so the encrypted token can be used.")
+        return _check(lang, "auth", WARNING, "t_auth", "auth_plain", "auth_plain_h")
+    return _check(lang, "auth", WARNING, "t_auth", "auth_old", "auth_old_h", mode=mode or "unknown")
 
 
-def check_callback(configured: bool, reachable: bool | None, last_push_age: float | None) -> Check:
+def check_callback(configured: bool, reachable: bool | None, last_push_age: float | None, lang: str = "en") -> Check:
     if not configured:
-        return Check("callback", WARNING, "Push updates", "No callback, states come by polling only.", "Set the Home Assistant URL in the options.")
+        return _check(lang, "callback", WARNING, "t_callback", "cb_none", "cb_none_h")
     if reachable is False:
-        return Check("callback", WARNING, "Push updates", "The bridge cannot reach Home Assistant, states come by polling only.", "Use an HTTP URL of Home Assistant in the local network (the bridge does not support HTTPS).")
+        return _check(lang, "callback", WARNING, "t_callback", "cb_unreachable", "cb_unreachable_h")
     if last_push_age is None:
-        return Check("callback", OK, "Push updates", "Registered, no push received since the start yet.")
-    return Check("callback", OK, "Push updates", f"Registered, last push {last_push_age / 60:.0f} min ago.")
+        return _check(lang, "callback", OK, "t_callback", "cb_waiting")
+    return _check(lang, "callback", OK, "t_callback", "cb_ok", min=last_push_age / 60)
 
 
-def check_battery(name: str, critical: bool | None, percent: int | None) -> Check | None:
+def check_battery(name: str, critical: bool | None, percent: int | None, lang: str = "en") -> Check | None:
     if critical:
-        return Check("battery", PROBLEM, f"{name}: battery", f"Critical{f' ({percent} %)' if percent is not None else ''}.", "Replace the batteries soon: weak batteries also cause Bluetooth drops.", name)
+        shown = f" ({percent} %)" if percent is not None else ""
+        return _check(lang, "battery", PROBLEM, "t_battery", "battery_critical", "battery_critical_h", name=name, percent=shown, device=name)
     if percent is None:
         return None
-    return Check("battery", OK, f"{name}: battery", f"{percent} %.", None, name)
+    return _check(lang, "battery", OK, "t_battery", "battery_ok", name=name, percent=percent, device=name)
 
 
-def report_markdown(checks: list[Check], title: str = "Nuki check-up") -> str:
+def check_web(error: str | None, lang: str = "en") -> Check:
+    if error:
+        return _check(lang, "web", PROBLEM, "t_web", "web_err", "web_err_h", error=error)
+    return _check(lang, "web", OK, "t_web", "web_ok")
+
+
+def report_markdown(checks: list[Check], lang: str = "en") -> str:
     icon = {OK: "✅", WARNING: "⚠️", PROBLEM: "❌"}
-    lines = [f"**{icon[worst(checks)]} {title}: {worst(checks)}**", ""]
+    status = worst(checks)
+    lines = [f"**{icon[status]} {text(lang, 'report')}: {text(lang, 's_' + status)}**", ""]
     for check in sorted(checks, key=lambda c: -_RANK[c.status]):
         line = f"- {icon[check.status]} **{check.title}**: {check.detail}"
         if check.hint and check.status != OK:

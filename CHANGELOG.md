@@ -11,6 +11,9 @@
   - Commands and Bluetooth problems in the logbook, a repair notice while the bridge is unstable, problem messages at an adjustable log level.
   - Everything can be switched off in the options (section *Diagnostics*). Failed actions are now kept across restarts.
 - [Troubleshooting guide](docs/troubleshooting.md).
+- **Entity names in your language**: names follow the language of Home Assistant (English and German included), e.g. *Nuki Front door Battery* or *Nuki Haustür Batterie*. Entity IDs stay the same.
+- The check-up report speaks German too and shows a notification right away while it runs.
+- Leftover devices of older versions (a second, empty device per lock) are removed automatically. Devices the bridge no longer reports can be deleted in the UI.
 
 ## 0.7.4 – 2026-11-17
 

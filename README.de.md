@@ -171,7 +171,7 @@ Prüft die Bridge und alle Geräte und liefert einen Bericht (`status`: `ok`, `w
 
 ## Entitäten
 
-Die Namen richten sich nach den Geräten in der Nuki-App.
+Gerätenamen richten sich nach der Nuki-App, Entitätsnamen nach der Sprache von Home Assistant (Deutsch und Englisch enthalten). Die Entitäts-IDs ändern sich mit der Sprache nicht.
 
 **Je Schloss / Opener**
 - Schloss mit Zustand *offen* / *öffnet*

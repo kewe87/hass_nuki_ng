@@ -16,14 +16,14 @@ Die Tür öffnet erst nach Sekunden, ein Befehl geht gar nicht durch oder die Br
 
 **Einstellungen → Geräte & Dienste → Nuki Lock → Gerät *Nuki Bridge* → *Check-up* drücken.**
 
-Nach ein paar Sekunden erscheint eine Benachrichtigung, Probleme stehen oben:
+Sofort erscheint eine Benachrichtigung „wird geprüft …“. Nach ein paar Sekunden ersetzt sie der Bericht, Probleme oben, in der Sprache von Home Assistant (Deutsch oder Englisch):
 
 ```
-⚠️ Nuki check-up: warning
-- ⚠️ Wohnungstür: Bluetooth drops: 6 in the last 24 h, the bridge retried.
-  → Occasional drops are normal at a weak signal. If commands get slow, move the bridge closer.
-- ✅ Bridge: reachable: Answers in 0.41 s.
-- ✅ Haustür: signal: -43 dBm, good.
+⚠️ Nuki Check-up: Warnung
+- ⚠️ Wohnungstür: Bluetooth-Abbrüche: 8 in den letzten 24 h.
+  → Mehr Abbrüche als üblich. Werden Befehle langsam, die Bridge näher stellen oder die Batterien tauschen.
+- ✅ Bridge: erreichbar: Antwortet in 0.41 s.
+- ✅ Haustür: Signal: -43 dBm, gut.
 …
 ```
 
@@ -53,13 +53,15 @@ Ohne Ziel prüft die Aktion alle eingerichteten Bridges, mit `device_id: <Bridge
 | **Uhrzeit** | weniger als 30 s Abweichung | mehr als 30 s | – |
 | **Token** | verschlüsselt | Hash oder Klartext | – |
 | **Push-Updates** | Callback gesetzt und erreichbar | kein Callback oder Bridge erreicht Home Assistant nicht | – |
-| **Signal** (je Gerät) | über −70 dBm | −70 bis −85 dBm | unter −85 dBm |
-| **Bluetooth-Abbrüche** (je Gerät, 24 h) | keine | 1–9 | ab 10 |
+| **Signal** (je Gerät) | über −80 dBm | −80 bis −90 dBm | unter −90 dBm |
+| **Bluetooth-Abbrüche** (je Gerät, 24 h) | bis 5 | 6–19 | ab 20 |
 | **Datenfehler** (Bridge, 24 h) | 0–2 | ab 3 | – |
 | **Neustarts** (Bridge, 24 h) | keine | Neustart | Neustart nach Bluetooth-Ausfall |
-| **Befehle** (je Gerät, 24 h) | alle im 1. Versuch | mit Wiederholung | fehlgeschlagen |
+| **Befehle** (je Gerät, 24 h) | höchstens 2 mit Wiederholung | ab 3 mit Wiederholung | fehlgeschlagen |
 | **Batterie** | – | – | kritisch |
 | **Web-API** (falls eingerichtet) | antwortet | – | Fehler |
+
+Die Grenzen sind so gesetzt, dass nur gemeldet wird, was man auch merkt. Ein paar Abbrüche am Tag, die die Bridge selbst wiederholt, sind normal und bleiben *gut*.
 
 Die *Gesundheit* der Bridge (Sensor) zeigt laufend den schlechtesten Befund aus dem, was ohnehin bekannt ist. Der Check-up fragt zusätzlich die Bridge selbst (Antwortzeit, Uhrzeit, frisches Log) und die Web-API.
 

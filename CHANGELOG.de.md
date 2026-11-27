@@ -11,6 +11,9 @@
   - Befehle und Bluetooth-Probleme im Logbuch, Reparaturhinweis bei instabiler Bridge, Problem-Meldungen mit einstellbarer Log-Stufe.
   - Alles lässt sich in den Optionen abschalten (Abschnitt *Diagnose*). Fehlgeschlagene Aktionen bleiben jetzt über Neustarts erhalten.
 - [Handbuch Fehlersuche](docs/troubleshooting.de.md).
+- **Entitätsnamen in deiner Sprache**: Die Namen folgen der Sprache von Home Assistant (Deutsch und Englisch enthalten), z. B. *Nuki Haustür Batterie*. Die Entitäts-IDs bleiben gleich.
+- Der Bericht des Check-ups ist auch auf Deutsch, und während er läuft, erscheint sofort eine Benachrichtigung.
+- Übrig gebliebene Geräte älterer Versionen (ein zweites, leeres Gerät je Schloss) werden automatisch entfernt. Geräte, die die Bridge nicht mehr meldet, lassen sich in der Oberfläche löschen.
 
 ## 0.7.4 – 17.11.2026
 

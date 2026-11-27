@@ -85,16 +85,49 @@ def test_action_statistics():
 
 def test_checkup_rules():
     assert health.check_rssi("Haustür", -42).status == health.OK
-    assert health.check_rssi("Wohnungstür", -70).status == health.WARNING
-    assert health.check_rssi("Keller", -90).status == health.PROBLEM
+    assert health.check_rssi("Wohnungstür", -70).status == health.OK  # works fine in practice
+    assert health.check_rssi("Flur", -82).status == health.WARNING
+    assert health.check_rssi("Keller", -92).status == health.PROBLEM
     assert health.check_drops("x", 0, True).status == health.OK
+    assert health.check_drops("x", 2, True).status == health.OK  # the bridge retried, normal
     assert health.check_drops("x", 6, True).status == health.WARNING
-    assert health.check_drops("x", 12, True).status == health.PROBLEM
-    assert health.check_drops("x", 12, False).status == health.OK
+    assert health.check_drops("x", 25, True).status == health.PROBLEM
+    assert health.check_drops("x", 25, False).status == health.OK
     assert health.check_restarts(0, 1, True).status == health.PROBLEM
     assert health.check_uart(16, True).status == health.WARNING
-    assert health.check_actions("x", {"actions": 4, "failed": 0, "retried": 1}).status == health.WARNING
+    assert health.check_actions("x", {"actions": 4, "failed": 0, "retried": 1}).status == health.OK
+    assert health.check_actions("x", {"actions": 9, "failed": 0, "retried": 3}).status == health.WARNING
+    assert health.check_actions("x", {"actions": 4, "failed": 1, "retried": 0}).status == health.PROBLEM
     checks = [health.check_rssi("a", -42), health.check_uart(16, True)]
     assert health.worst(checks) == health.WARNING
     text = health.report_markdown(checks)
     assert text.index("data errors") < text.index("a: signal")  # problems first
+
+
+def test_checkup_texts_follow_the_language():
+    assert health.language("de-CH") == "de" and health.language("fr") == "en" and health.language(None) == "en"
+    check = health.check_drops("Wohnungstür", 2, True, "de")
+    assert check.title == "Wohnungstür: Bluetooth-Abbrüche" and "normal" in check.detail
+    assert "Warnung" in health.report_markdown([health.check_uart(16, True, "de")], "de")
+    assert set(health.TEXTS["de"]) == set(health.TEXTS["en"])
+    for lang in health.TEXTS:  # every text renders with the values the checks pass
+        health.check_battery("x", True, 5, lang)
+        health.check_callback(True, True, 120, lang)
+        health.check_clock(40, lang)
+        health.check_response(0.4, None, lang)
+        health.check_auth("hashed", lang)
+        health.check_web("boom", lang)
+
+
+def test_every_entity_name_is_translated():
+    import json
+    import re
+    from pathlib import Path
+
+    base = Path(__file__).parent.parent / "custom_components" / "nuki_ng"
+    for lang in ("en", "de"):
+        entity = json.loads((base / "translations" / f"{lang}.json").read_text())["entity"]
+        for path in base.glob("*.py"):
+            for name in re.findall(r'set_name\("([^"]+)"\)', path.read_text()):
+                key = re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
+                assert key in entity.get(path.stem, {}), (lang, path.stem, key)

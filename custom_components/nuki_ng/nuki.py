@@ -1368,23 +1368,29 @@ class NukiCoordinator(DataUpdateCoordinator):
         """What can be judged from what is already known, without asking the bridge."""
         now = time.time()
         data = data or self.data or {}
+        lang = self.language
         checks: list[Check] = []
         if self.api.can_bridge():
-            checks.append(health.check_uart(self.bridge_problems(health.UART), self.watch_log))
+            checks.append(health.check_uart(self.bridge_problems(health.UART), self.watch_log, lang))
             checks.append(health.check_restarts(
-                self.bridge_problems(health.RESTART), self.bridge_problems(health.BLE_FAILURE), self.watch_log))
+                self.bridge_problems(health.RESTART), self.bridge_problems(health.BLE_FAILURE), self.watch_log, lang))
             age = None if self.last_push is None else (dt_util.utcnow() - self.last_push).total_seconds()
-            checks.append(health.check_callback(bool(self.hass_url), self.callback_reachable, age))
+            checks.append(health.check_callback(bool(self.hass_url), self.callback_reachable, age, lang))
         for dev_id, item in (data.get("devices") or {}).items():
             name = item.get("name", str(dev_id))
             if self.api.can_bridge():
-                checks.append(health.check_rssi(name, (item.get("bridge_info") or {}).get("rssi")))
-                checks.append(health.check_drops(name, self.ble_drops(dev_id), self.watch_log))
-            checks.append(health.check_actions(name, self.stats_for(dev_id).day(now)))
+                checks.append(health.check_rssi(name, (item.get("bridge_info") or {}).get("rssi"), lang))
+                checks.append(health.check_drops(name, self.ble_drops(dev_id), self.watch_log, lang))
+            checks.append(health.check_actions(name, self.stats_for(dev_id).day(now), lang))
             state = item.get("lastKnownState") or {}
-            if (battery := health.check_battery(name, state.get("batteryCritical"), state.get("batteryChargeState"))):
+            if (battery := health.check_battery(name, state.get("batteryCritical"), state.get("batteryChargeState"), lang)):
                 checks.append(battery)
         return checks
+
+    @property
+    def language(self) -> str:
+        """Language of the check-up texts, follows the Home Assistant language."""
+        return health.language(self.hass.config.language)
 
     def health_status(self) -> str:
         return health.worst(self.passive_checks())
@@ -1403,6 +1409,13 @@ class NukiCoordinator(DataUpdateCoordinator):
 
     async def async_checkup(self, notify: bool = False) -> dict:
         """Run every check, also those that ask the bridge, and report the result."""
+        lang = self.language
+        notification_id = f"{DOMAIN}_checkup_{self.entry.entry_id}"
+        if notify:  # immediate feedback, replaced by the report when done
+            persistent_notification.async_create(
+                self.hass, health.text(lang, "running"), title=health.text(lang, "report"),
+                notification_id=notification_id,
+            )
         checks: list[Check] = []
         if self.api.can_bridge():
             started, error, info = time.monotonic(), None, None
@@ -1410,19 +1423,19 @@ class NukiCoordinator(DataUpdateCoordinator):
                 info = await self.api.bridge_info(timeout=BRIDGE_TIMEOUT)
             except NukiError as err:
                 error = redact(err)
-            checks.append(health.check_response(None if error else time.monotonic() - started, error))
+            checks.append(health.check_response(None if error else time.monotonic() - started, error, lang))
             if info:
                 current = dt_util.parse_datetime(str(info.get("currentTime") or ""))
-                checks.append(health.check_clock(None if current is None else (current - dt_util.utcnow()).total_seconds()))
-                checks.append(health.check_auth(self.api.active_auth))
+                checks.append(health.check_clock(None if current is None else (current - dt_util.utcnow()).total_seconds(), lang))
+                checks.append(health.check_auth(self.api.active_auth, lang))
                 if self.watch_log:
                     await self._read_bridge_log()
         if self.api.can_web():
             try:
                 await self.api.web_list()
-                checks.append(Check("web", health.OK, "Nuki Web API", "Answers."))
+                checks.append(health.check_web(None, lang))
             except HomeAssistantError as err:
-                checks.append(Check("web", health.PROBLEM, "Nuki Web API", f"Fails: {redact(err)}", "Check the Web API token in the Nuki Web portal."))
+                checks.append(health.check_web(redact(err), lang))
         checks.extend(self.passive_checks())
         status = health.worst(checks)
         self.last_checkup = {
@@ -1437,8 +1450,8 @@ class NukiCoordinator(DataUpdateCoordinator):
                 _LOGGER.log(self.problem_level, "Check-up %s - %s: %s %s", check.status, check.title, check.detail, check.hint or "")
         if notify:
             persistent_notification.async_create(
-                self.hass, health.report_markdown(checks), title="Nuki check-up",
-                notification_id=f"{DOMAIN}_checkup_{self.entry.entry_id}",
+                self.hass, health.report_markdown(checks, lang), title=health.text(lang, "report"),
+                notification_id=notification_id,
             )
         self.async_update_listeners()
         return self.last_checkup

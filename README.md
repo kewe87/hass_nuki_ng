@@ -171,7 +171,7 @@ Checks the bridge and all devices and returns a report (`status`: `ok`, `warning
 
 ## Entities
 
-Names follow the devices in the Nuki app.
+Device names follow the Nuki app, entity names the language of Home Assistant (English and German included). Entity IDs never change with the language.
 
 **Per lock / opener**
 - Lock with *open* / *opening* state
