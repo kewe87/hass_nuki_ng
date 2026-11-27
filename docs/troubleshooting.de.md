@@ -54,7 +54,7 @@ Ohne Ziel prüft die Aktion alle eingerichteten Bridges, mit `device_id: <Bridge
 | **Token** | verschlüsselt | Hash oder Klartext | – |
 | **Push-Updates** | Callback gesetzt und erreichbar | kein Callback oder Bridge erreicht Home Assistant nicht | – |
 | **Signal** (je Gerät) | über −80 dBm | −80 bis −90 dBm | unter −90 dBm |
-| **Bluetooth-Abbrüche** (je Gerät, 24 h) | bis 5 | 6–19 | ab 20 |
+| **Bluetooth-Abbrüche** (je Gerät, 24 h, eine Serie von Nachversuchen zählt einmal) | bis 5 | 6–19 | ab 20 |
 | **Datenfehler** (Bridge, 24 h) | 0–2 | ab 3 | – |
 | **Neustarts** (Bridge, 24 h) | keine | Neustart | Neustart nach Bluetooth-Ausfall |
 | **Befehle** (je Gerät, 24 h) | höchstens 2 mit Wiederholung | ab 3 mit Wiederholung | fehlgeschlagen |
@@ -69,7 +69,7 @@ Die *Gesundheit* der Bridge (Sensor) zeigt laufend den schlechtesten Befund aus 
 
 Die Bridge führt ein kurzes eigenes Protokoll (`/log`). nuki_ng liest alle 10 Minuten die neuesten 100 Einträge und merkt sich, was neu ist:
 
-- **Bluetooth-Abbruch** (`BLE-EarlyDisconnect`): Die Verbindung zum Gerät brach mitten im Befehl ab. Die Bridge versucht es meist selbst noch einmal. Das kostet Sekunden, bleibt aber sonst unsichtbar.
+- **Bluetooth-Abbruch** (`BLE-EarlyDisconnect`): Die Verbindung zum Gerät brach mitten im Befehl ab. Die Bridge versucht es meist selbst noch einmal. Das kostet Sekunden, bleibt aber sonst unsichtbar. Die Bridge schreibt je Versuch einen Eintrag; Einträge eines Geräts innerhalb einer Minute zählen als ein Abbruch.
 - **Bluetooth-Ausfall** (`BLE-RebootBLEFailed` u. a.): Die Bridge gibt Bluetooth auf und startet sich neu. Für 15–20 s geht dann kein Befehl.
 - **Datenfehler** (`UartCRCError`): Gestörte Daten zwischen WLAN- und Bluetooth-Chip der Bridge. Fast immer die Stromversorgung.
 - **Neustart** (`System-Startup`).

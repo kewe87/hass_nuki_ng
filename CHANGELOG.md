@@ -15,6 +15,7 @@
 - The check-up report speaks German too and shows a notification right away while it runs.
 - **Firmware updates in the update overview**: locks and openers show new firmware under *Settings → Updates*, with release notes from the Nuki help center (option, on by default).
   The bridge button is now called *Update bridge firmware*: the bridge has no release notes, so it stays the way to update the bridge itself.
+- Bluetooth drops: a burst of retries (the bridge writes one entry per attempt, often 3–8 within seconds) counts as one drop, so the warning limits mean what they say.
 - Leftover devices of older versions (a second, empty device per lock) are removed automatically. Devices the bridge no longer reports can be deleted in the UI.
 
 ## 0.7.4 – 2026-11-17

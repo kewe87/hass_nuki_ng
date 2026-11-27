@@ -15,6 +15,7 @@
 - Der Bericht des Check-ups ist auch auf Deutsch, und während er läuft, erscheint sofort eine Benachrichtigung.
 - **Firmware-Updates in der Update-Übersicht**: Schlösser und Opener zeigen neue Firmware unter *Einstellungen → Updates*, mit Release Notes aus dem Nuki-Hilfecenter (Option, standardmäßig an).
   Die Taste der Bridge heißt jetzt *Bridge-Firmware aktualisieren*: Für die Bridge gibt es keine Release Notes, darüber aktualisiert man weiterhin die Bridge selbst.
+- Bluetooth-Abbrüche: Eine Serie von Nachversuchen (die Bridge schreibt je Versuch einen Eintrag, oft 3–8 in wenigen Sekunden) zählt als ein Abbruch, damit die Warngrenzen stimmen.
 - Übrig gebliebene Geräte älterer Versionen (ein zweites, leeres Gerät je Schloss) werden automatisch entfernt. Geräte, die die Bridge nicht mehr meldet, lassen sich in der Oberfläche löschen.
 
 ## 0.7.4 – 17.11.2026

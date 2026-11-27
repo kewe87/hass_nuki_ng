@@ -65,6 +65,16 @@ def test_old_problems_leave_after_a_day_and_survive_a_restart():
     assert restored.totals[health.DROP] == 1
 
 
+def test_a_burst_of_retries_counts_as_one_drop():
+    log = health.BridgeLog()
+    burst = [entry(600 + i, "BLE-EarlyDisconnect", "1C9F0125") for i in range(7)]
+    later = [entry(100, "BLE-EarlyDisconnect", "1C9F0125"), entry(101, "BLE-EarlyDisconnect", "30E6840A")]
+    log.feed(later + burst, 100, NOW)
+    assert log.count(health.DROP, "1C9F0125", NOW) == 2  # the burst and the later one
+    assert log.count(health.DROP, "30E6840A", NOW) == 1
+    assert log.totals[health.DROP] == 9  # raw entries stay in the totals
+
+
 def test_a_full_read_that_does_not_reach_back_is_a_gap():
     log = health.BridgeLog()
     log.feed([entry(3000, "HTTP-List", None)], 2, NOW)

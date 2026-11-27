@@ -54,7 +54,7 @@ Without a target the action checks every bridge that is set up, with `device_id:
 | **Token** | encrypted | hashed or plain | – |
 | **Push updates** | callback set and reachable | no callback, or the bridge cannot reach Home Assistant | – |
 | **Signal** (per device) | above −80 dBm | −80 to −90 dBm | below −90 dBm |
-| **Bluetooth drops** (per device, 24 h) | up to 5 | 6–19 | 20 or more |
+| **Bluetooth drops** (per device, 24 h, a burst of retries counts once) | up to 5 | 6–19 | 20 or more |
 | **Data errors** (bridge, 24 h) | 0–2 | 3 or more | – |
 | **Restarts** (bridge, 24 h) | none | restart | restart after a Bluetooth failure |
 | **Commands** (per device, 24 h) | at most 2 needed a retry | 3 or more needed a retry | failed |
@@ -69,7 +69,7 @@ The bridge *Health* sensor always shows the worst finding of what is already kno
 
 The bridge keeps a short log of its own (`/log`). Every 10 minutes nuki_ng reads the newest 100 entries and remembers what is new:
 
-- **Bluetooth drop** (`BLE-EarlyDisconnect`): the connection to the device broke off during a command. The bridge usually retries by itself. That costs seconds but otherwise stays invisible.
+- **Bluetooth drop** (`BLE-EarlyDisconnect`): the connection to the device broke off during a command. The bridge usually retries by itself. That costs seconds but otherwise stays invisible. The bridge writes one entry per attempt; entries of one device within a minute count as one drop.
 - **Bluetooth failure** (`BLE-RebootBLEFailed` and others): the bridge gives up on Bluetooth and restarts. No command works for 15–20 s.
 - **Data error** (`UartCRCError`): broken data between the WiFi and the Bluetooth chip of the bridge. Almost always the power supply.
 - **Restart** (`System-Startup`).

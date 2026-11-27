@@ -34,8 +34,11 @@ _RANK = {OK: 0, WARNING: 1, PROBLEM: 2}
 # bridge retries by itself are normal and stay "ok".
 RSSI_WEAK = -80  # dBm, at or below: weak
 RSSI_BAD = -90
-DROPS_WARN = 6  # per 24 h
+DROPS_WARN = 6  # drop episodes per 24 h
 DROPS_BAD = 20
+# The bridge writes one drop per attempt while it retries (often 3-8 within
+# a few seconds). Drops of one device closer than this count as one episode.
+EPISODE_SECONDS = 60
 RETRIES_WARN = 3  # commands that needed a retry, per 24 h
 UART_WARN = 3
 RESTARTS_WARN = 1
@@ -140,7 +143,16 @@ class BridgeLog:
         """Problems of one kind in the last 24 h, for one device or the bridge."""
         if now is not None:
             self.prune(now)
-        return sum(1 for e in self.events if e.kind == kind and (any_device or e.device == device))
+        events = [e for e in self.events if e.kind == kind and (any_device or e.device == device)]
+        if kind != DROP:
+            return len(events)
+        # one episode per burst of retries, per device
+        count, last = 0, {}
+        for e in sorted(events, key=lambda e: e.time):
+            if e.device not in last or e.time - last[e.device] > EPISODE_SECONDS:
+                count += 1
+            last[e.device] = e.time
+        return count
 
     def as_dict(self) -> dict[str, Any]:
         return {
