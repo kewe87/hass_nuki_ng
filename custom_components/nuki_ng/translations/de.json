@@ -47,11 +47,13 @@
           "hass_url": "Home-Assistant-URL für Bridge-Callbacks (leer = automatisch)",
           "update_seconds": "Abfrageintervall",
           "action_retries": "Wiederholungen bei fehlgeschlagenen Aktionen",
-          "auth_mode": "Bridge-Authentifizierung"
+          "auth_mode": "Bridge-Authentifizierung",
+          "firmware_check": "Nach Firmware-Updates suchen"
         },
         "data_description": {
           "action_retries": "Öffnende Aktionen (Öffnen, Falle ziehen, Türsummer) werden nur wiederholt, wenn die Bridge sie sicher nicht ausgeführt hat, und nie später als 35 s nach der Anfrage.",
-          "auth_mode": "Automatisch nutzt das verschlüsselte Token (Bridge-Firmware ab 2.14.0) und weicht auf das veraltete Hash-Token aus. Das Klartext-Token überträgt das Geheimnis unverschlüsselt."
+          "auth_mode": "Automatisch nutzt das verschlüsselte Token (Bridge-Firmware ab 2.14.0) und weicht auf das veraltete Hash-Token aus. Das Klartext-Token überträgt das Geheimnis unverschlüsselt.",
+          "firmware_check": "Liest zweimal am Tag die Release Notes im Nuki-Hilfecenter und zeigt neue Firmware für Schlösser und Opener unter Einstellungen → Updates. Es werden keine Gerätedaten gesendet."
         },
         "sections": {
           "diagnostics": {
@@ -297,6 +299,11 @@
       },
       "auth_entry": {
         "name": "Berechtigung: {name}"
+      }
+    },
+    "update": {
+      "firmware": {
+        "name": "Firmware"
       }
     }
   }

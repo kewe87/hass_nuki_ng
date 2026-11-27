@@ -116,6 +116,7 @@ Nur Bridge, nur Web-API (Smart Lock 3.0 Pro und neuer) oder beides.
 - **Abfrageintervall** – 30 s. Zustände kommen normalerweise per Push.
 - **Wiederholungen** – 3, siehe *Zuverlässige Türaktionen*.
 - **Anmeldung** – automatisch: verschlüsseltes Token (Firmware ≥ 2.14.0 / 1.22.1), sonst Hash. *Klartext* sendet das Token unverschlüsselt.
+- **Nach Firmware-Updates suchen** – an. Liest zweimal am Tag die öffentlichen Release Notes im Nuki-Hilfecenter, es werden keine Gerätedaten gesendet.
 - **Diagnose** (eingeklappter Abschnitt, jeder Teil lässt sich abschalten):
   - *Bridge-Log überwachen* – an. Zählt Bluetooth-Abbrüche, Datenfehler und Neustarts.
   - *Log-Stufe für Probleme* – Warnung, Info oder Debug.
@@ -178,7 +179,7 @@ Gerätenamen richten sich nach der Nuki-App, Entitätsnamen nach der Sprache von
 - Klingel-Event und Ring-Aktion (Opener)
 - Türsensor: offen, Zustand, Sicherheitszustand
 - Batterie, Batterie kritisch, lädt, Keypad-Batterie
-- Zustand, RSSI, Firmware
+- Firmware-Update unter *Einstellungen → Updates*, mit Release Notes. Nuki installiert Updates selbst (automatische Updates nachts) oder über die Nuki-App, die Bridge-API kann sie nicht starten.
 - Bluetooth-Abbrüche (24 h), Dauer des letzten Befehls
 - Dauermodus (Opener, **standardmäßig aus**)
 

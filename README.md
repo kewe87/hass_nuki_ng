@@ -116,6 +116,7 @@ Bridge only, Web API only (Smart Lock 3.0 Pro and newer) or both.
 - **Polling interval** – 30 s. States normally arrive by push.
 - **Retries** – 3, see *Reliable door actions*.
 - **Authentication** – automatic: encrypted token (firmware ≥ 2.14.0 / 1.22.1), else hashed. *Plain* sends the token unencrypted.
+- **Check for firmware updates** – on. Reads the public release notes of the Nuki help center twice a day; no device data is sent.
 - **Diagnostics** (collapsed section, each part can be switched off):
   - *Watch the bridge log* – on. Counts Bluetooth drops, data errors and restarts.
   - *Log level for problems* – Warning, Info or Debug.
@@ -179,6 +180,7 @@ Device names follow the Nuki app, entity names the language of Home Assistant (E
 - Door sensor: open, state, security state
 - Battery, battery critical, charging, keypad battery
 - State, RSSI, firmware
+- Firmware update in *Settings → Updates*, with release notes. Nuki installs updates by itself (automatic updates at night) or through the Nuki app, the bridge API cannot start them.
 - Bluetooth drops (24 h), duration of the last command
 - Continuous mode (Opener, **off by default**)
 

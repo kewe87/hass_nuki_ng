@@ -1,5 +1,5 @@
 DOMAIN = "nuki_ng"
-PLATFORMS = ["binary_sensor", "sensor", "lock", "switch", "button", "select", "event"]
+PLATFORMS = ["binary_sensor", "sensor", "lock", "switch", "button", "select", "event", "update"]
 
 CONF_ACTION_RETRIES = "action_retries"
 DEFAULT_ACTION_RETRIES = 3
@@ -26,6 +26,10 @@ DEFAULT_PROBLEM_LOG_LEVEL = "warning"
 DEFAULT_LOGBOOK = True
 DEFAULT_REPAIRS = True
 PROBLEM_LOG_LEVELS = ["warning", "info", "debug"]
+
+# Firmware updates from the release notes of the Nuki help center
+CONF_FIRMWARE_CHECK = "firmware_check"
+DEFAULT_FIRMWARE_CHECK = True
 
 EVENT_ACTION = "nuki_ng_action"
 EVENT_PROBLEM = "nuki_ng_bluetooth_problem"

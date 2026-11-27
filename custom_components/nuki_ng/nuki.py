@@ -55,12 +55,14 @@ from .constants import (
     AUTH_PLAIN,
     CONF_ACTION_RETRIES,
     CONF_AUTH_MODE,
+    CONF_FIRMWARE_CHECK,
     CONF_LOGBOOK,
     CONF_PROBLEM_LOG_LEVEL,
     CONF_REPAIRS,
     CONF_WATCH_LOG,
     CONF_WEBHOOK_ID,
     DEFAULT_ACTION_RETRIES,
+    DEFAULT_FIRMWARE_CHECK,
     DEFAULT_LOGBOOK,
     DEFAULT_PROBLEM_LOG_LEVEL,
     DEFAULT_REPAIRS,
@@ -70,7 +72,7 @@ from .constants import (
     EVENT_PROBLEM,
     OPEN_ACTIONS,
 )
-from . import health
+from . import firmware, health
 from .health import ActionRecord, ActionStats, BridgeLog, Check
 
 _LOGGER = logging.getLogger(__name__)
@@ -110,6 +112,8 @@ MAX_BRIDGE_CALLBACKS = 3
 
 # Bridge log: read rarely and in small portions, many entries at once hang the bridge HTTP
 LOG_READ_SECONDS = 600
+FIRMWARE_CHECK_SECONDS = 12 * 3600
+FIRMWARE_RETRY_SECONDS = 3600
 LOG_READ_COUNT = 100
 HEALTH_SAVE_DELAY = 60
 MAX_CALLBACK_BODY = 4096
@@ -665,6 +669,9 @@ class NukiCoordinator(DataUpdateCoordinator):
         self.problem_level = getattr(logging, str(config.get(CONF_PROBLEM_LOG_LEVEL, DEFAULT_PROBLEM_LOG_LEVEL)).upper(), logging.WARNING)
         self.logbook = bool(config.get(CONF_LOGBOOK, DEFAULT_LOGBOOK))
         self.repairs = bool(config.get(CONF_REPAIRS, DEFAULT_REPAIRS))
+        self.firmware_check = bool(config.get(CONF_FIRMWARE_CHECK, DEFAULT_FIRMWARE_CHECK))
+        self.firmware_releases: list[firmware.Release] = []
+        self._firmware_due = 0.0
         self.bridge_log = BridgeLog()
         self.action_stats: dict[str, ActionStats] = {}
         self.last_checkup: dict | None = None
@@ -986,7 +993,40 @@ class NukiCoordinator(DataUpdateCoordinator):
                 await self._read_bridge_log(result)
             except Exception:  # noqa: BLE001 - diagnostics never break the update
                 _LOGGER.exception("Evaluating the bridge log failed")
+        if self.firmware_check and time.monotonic() >= self._firmware_due:
+            self._firmware_due = time.monotonic() + FIRMWARE_RETRY_SECONDS
+            self.entry.async_create_background_task(
+                self.hass, self._load_firmware_releases(), f"{DOMAIN} firmware releases"
+            )
         return result
+
+    async def _load_firmware_releases(self):
+        """Read the release notes of the Nuki help center (public, no device data is sent)."""
+        session = async_get_clientsession(self.hass)
+        articles: list[dict] = []
+        try:
+            for page in range(1, firmware.MAX_PAGES + 1):
+                async with session.get(
+                    firmware.SEARCH_URL,
+                    params={"query": firmware.SEARCH_QUERY, "locale": "en-001", "per_page": 100, "page": page},
+                    timeout=aiohttp.ClientTimeout(total=20),
+                ) as response:
+                    response.raise_for_status()
+                    data = await response.json()
+                articles.extend(data.get("results") or [])
+                if not data.get("next_page"):
+                    break
+        except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as err:
+            _LOGGER.debug("Reading the Nuki release notes failed, trying again in an hour: %s", err)
+            return
+        releases = firmware.parse_articles(articles)
+        if not releases:
+            _LOGGER.debug("No firmware release notes found in the Nuki help center")
+            return
+        self.firmware_releases = releases
+        self._firmware_due = time.monotonic() + FIRMWARE_CHECK_SECONDS
+        _LOGGER.debug("Read %s firmware release notes", len(releases))
+        self.async_update_listeners()
 
     async def _fetch(self):
         callbacks_list = None

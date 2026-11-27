@@ -47,11 +47,13 @@
           "hass_url": "Home Assistant URL for bridge callbacks (empty = automatic)",
           "update_seconds": "State polling interval",
           "action_retries": "Retries for failed lock actions",
-          "auth_mode": "Bridge authentication"
+          "auth_mode": "Bridge authentication",
+          "firmware_check": "Check for firmware updates"
         },
         "data_description": {
           "action_retries": "Opening actions (open, unlatch, electric strike) are only repeated when the bridge certainly did not execute them, and never later than 35 s after the request.",
-          "auth_mode": "Automatic uses the encrypted token (bridge firmware >= 2.14.0) and falls back to the deprecated hashed token. The plain token sends the secret unencrypted."
+          "auth_mode": "Automatic uses the encrypted token (bridge firmware >= 2.14.0) and falls back to the deprecated hashed token. The plain token sends the secret unencrypted.",
+          "firmware_check": "Reads the release notes of the Nuki help center twice a day and shows new firmware of locks and openers under Settings → Updates. No device data is sent."
         },
         "sections": {
           "diagnostics": {
@@ -297,6 +299,11 @@
       },
       "auth_entry": {
         "name": "Authorization: {name}"
+      }
+    },
+    "update": {
+      "firmware": {
+        "name": "Firmware"
       }
     }
   }

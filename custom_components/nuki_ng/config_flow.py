@@ -27,6 +27,8 @@ from .constants import (
     AUTH_MODES,
     CONF_ACTION_RETRIES,
     CONF_AUTH_MODE,
+    CONF_FIRMWARE_CHECK,
+    DEFAULT_FIRMWARE_CHECK,
     CONF_LOGBOOK,
     CONF_PROBLEM_LOG_LEVEL,
     CONF_REPAIRS,
@@ -209,6 +211,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         "update_seconds": int(user_input["update_seconds"]),
                         CONF_ACTION_RETRIES: int(user_input[CONF_ACTION_RETRIES]),
                         CONF_AUTH_MODE: user_input[CONF_AUTH_MODE],
+                        CONF_FIRMWARE_CHECK: bool(user_input.get(CONF_FIRMWARE_CHECK, DEFAULT_FIRMWARE_CHECK)),
                         **_diagnostics(user_input.get("diagnostics") or {}, current),
                     }
                 )
@@ -229,6 +232,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     translation_key=CONF_AUTH_MODE,
                 )
             ),
+            vol.Required(
+                CONF_FIRMWARE_CHECK,
+                default=bool(current.get(CONF_FIRMWARE_CHECK, DEFAULT_FIRMWARE_CHECK)),
+            ): BooleanSelector(),
             vol.Required("diagnostics"): section(
                 vol.Schema({
                     vol.Required(CONF_WATCH_LOG, default=bool(current.get(CONF_WATCH_LOG, DEFAULT_WATCH_LOG))): BooleanSelector(),

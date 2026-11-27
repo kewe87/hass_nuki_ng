@@ -13,6 +13,7 @@
 - [Troubleshooting guide](docs/troubleshooting.md).
 - **Entity names in your language**: names follow the language of Home Assistant (English and German included), e.g. *Nuki Front door Battery* or *Nuki Haustür Batterie*. Entity IDs stay the same.
 - The check-up report speaks German too and shows a notification right away while it runs.
+- **Firmware updates in the update overview**: locks and openers show new firmware under *Settings → Updates*, with release notes from the Nuki help center (option, on by default).
 - Leftover devices of older versions (a second, empty device per lock) are removed automatically. Devices the bridge no longer reports can be deleted in the UI.
 
 ## 0.7.4 – 2026-11-17
