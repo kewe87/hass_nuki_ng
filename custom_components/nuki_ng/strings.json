@@ -205,7 +205,7 @@
         "name": "Reboot"
       },
       "firmware_update": {
-        "name": "Firmware Update"
+        "name": "Update bridge firmware"
       },
       "check_up": {
         "name": "Check-up"

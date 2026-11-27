@@ -14,5 +14,5 @@
   "requirements": [
     "PyNaCl>=1.5.0"
   ],
-  "version": "0.7.5.dev3"
+  "version": "0.7.5.dev4"
 }

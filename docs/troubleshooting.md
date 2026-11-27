@@ -87,7 +87,7 @@ Larger reads make the bridge hang, so nuki_ng reads little and rarely on purpose
 | Bridge answers slowly | polling interval too short, other systems ask the same bridge | polling interval not below 30 s, fewer other requests |
 | No push updates | firewall/VLAN, HTTPS URL | enter an HTTP URL of Home Assistant in the local network in the options |
 | Clock is off | bridge without internet, wrong Home Assistant clock | check the time of Home Assistant; the bridge needs internet for its time |
-| Hashed or plain token | old bridge firmware | update the bridge firmware (button *Firmware Update*) |
+| Hashed or plain token | old bridge firmware | update the bridge firmware (button *Update bridge firmware*) |
 
 **Important for door openers:** commands that open a door are only repeated when the bridge certainly did not execute them. A timeout means "maybe open" and is not repeated. Many such cases show up in the check-up as failed commands.
 

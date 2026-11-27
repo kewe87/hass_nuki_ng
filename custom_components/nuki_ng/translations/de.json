@@ -205,7 +205,7 @@
         "name": "Neustart"
       },
       "firmware_update": {
-        "name": "Firmware-Update"
+        "name": "Bridge-Firmware aktualisieren"
       },
       "check_up": {
         "name": "Check-up"

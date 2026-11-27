@@ -87,7 +87,7 @@ Größere Abfragen bringen die Bridge zum Hängen, deshalb liest nuki_ng bewusst
 | Bridge antwortet langsam | zu kurzes Abfrageintervall, andere Systeme fragen dieselbe Bridge | Abfrageintervall nicht unter 30 s, andere Abfragen reduzieren |
 | Keine Push-Updates | Firewall/VLAN, HTTPS-URL | HTTP-URL von Home Assistant im lokalen Netz in den Optionen eintragen |
 | Uhrzeit weicht ab | Bridge ohne Internet, Home-Assistant-Uhr falsch | Zeit von Home Assistant prüfen, Bridge braucht Internet für die Zeit |
-| Hash- oder Klartext-Token | alte Bridge-Firmware | Firmware-Update der Bridge (Taste *Firmware Update*) |
+| Hash- oder Klartext-Token | alte Bridge-Firmware | Firmware-Update der Bridge (Taste *Bridge-Firmware aktualisieren*) |
 
 **Wichtig bei Türöffnern:** Befehle, die eine Tür öffnen, wiederholt nuki_ng nur, wenn die Bridge sie sicher nicht ausgeführt hat. Eine Zeitüberschreitung bedeutet „vielleicht offen“ und wird nicht wiederholt. Viele solche Fälle zeigen sich im Check-up als fehlgeschlagene Befehle.
 

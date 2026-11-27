@@ -14,6 +14,7 @@
 - **Entitätsnamen in deiner Sprache**: Die Namen folgen der Sprache von Home Assistant (Deutsch und Englisch enthalten), z. B. *Nuki Haustür Batterie*. Die Entitäts-IDs bleiben gleich.
 - Der Bericht des Check-ups ist auch auf Deutsch, und während er läuft, erscheint sofort eine Benachrichtigung.
 - **Firmware-Updates in der Update-Übersicht**: Schlösser und Opener zeigen neue Firmware unter *Einstellungen → Updates*, mit Release Notes aus dem Nuki-Hilfecenter (Option, standardmäßig an).
+  Die Taste der Bridge heißt jetzt *Bridge-Firmware aktualisieren*: Für die Bridge gibt es keine Release Notes, darüber aktualisiert man weiterhin die Bridge selbst.
 - Übrig gebliebene Geräte älterer Versionen (ein zweites, leeres Gerät je Schloss) werden automatisch entfernt. Geräte, die die Bridge nicht mehr meldet, lassen sich in der Oberfläche löschen.
 
 ## 0.7.4 – 17.11.2026
